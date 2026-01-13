@@ -12,7 +12,7 @@ const GameDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: game, isLoading } = useGame(id);
-  const { isAuthenticated } = useAuth();
+  const { isAdmin } = useAuth();
 
   if (isLoading) {
     return (
@@ -117,7 +117,7 @@ const GameDetail = () => {
               <h1 className="font-display text-3xl font-bold text-foreground">
                 {game.title}
               </h1>
-              {isAuthenticated && (
+              {isAdmin && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -171,10 +171,9 @@ const GameDetail = () => {
                     Description
                   </h2>
                   {game.description ? (
-                    <div
-                      className="text-muted-foreground leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: game.description }}
-                    />
+                    <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                      {game.description}
+                    </p>
                   ) : (
                     <p className="text-muted-foreground italic">
                       No description available.

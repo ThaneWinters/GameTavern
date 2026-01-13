@@ -41,7 +41,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Admin = () => {
   const navigate = useNavigate();
-  const { user, signOut, isAuthenticated, loading } = useAuth();
+  const { user, signOut, isAuthenticated, isAdmin, loading } = useAuth();
   const { data: games = [], isLoading: gamesLoading } = useGames();
   const deleteGame = useDeleteGame();
   const { toast } = useToast();
@@ -49,9 +49,9 @@ const Admin = () => {
   const [bggUrl, setBggUrl] = useState("");
   const [isImporting, setIsImporting] = useState(false);
 
-  // Redirect if not authenticated
-  if (!loading && !isAuthenticated) {
-    navigate("/login");
+  // Redirect if not authenticated or not admin
+  if (!loading && (!isAuthenticated || !isAdmin)) {
+    navigate(isAuthenticated ? "/" : "/login");
     return null;
   }
 
