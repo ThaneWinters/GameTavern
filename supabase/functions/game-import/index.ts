@@ -160,18 +160,38 @@ Deno.serve(async (req) => {
     const imageRegex = /https?:\/\/cf\.geekdo-images\.com[^\s"'<>]+/g;
     const allImageMatches = rawHtml.match(imageRegex) || [];
     
-    // Deduplicate and filter for quality images
+    // Deduplicate images
     const uniqueImages = [...new Set(allImageMatches)] as string[];
     
     // Filter OUT tiny thumbnails - we only want quality images
-    const imageLinks = uniqueImages.filter((img) => {
+    const filteredImages = uniqueImages.filter((img) => {
       // Exclude tiny thumbnails
       const isTiny = /crop100|square30|100x100|150x150|_thumb/i.test(img);
       return !isTiny;
     });
     
-    // Sort to prioritize high-quality images first
-    const sortedImageLinks = imageLinks.sort((a, b) => {
+    // Transform small/medium thumbnails to full-size versions
+    // BGG uses patterns like __small, __medium -> we want __imagepage for full size
+    const upgradeToFullSize = (url: string): string => {
+      // If already high quality, keep as is
+      if (/_imagepage|_itemrep|_original/i.test(url)) {
+        return url;
+      }
+      // Upgrade __small or __medium to __imagepage
+      if (/__small|__medium/i.test(url)) {
+        return url
+          .replace(/__small/g, "__imagepage")
+          .replace(/__medium/g, "__imagepage")
+          .replace(/\/fit-in\/200x150\//g, "/fit-in/900x600/")
+          .replace(/\/fit-in\/250x250\//g, "/fit-in/900x600/");
+      }
+      return url;
+    };
+    
+    const upgradedImages = filteredImages.map(upgradeToFullSize);
+    
+    // Deduplicate again after upgrade and sort to prioritize high-quality first
+    const sortedImageLinks = [...new Set(upgradedImages)].sort((a, b) => {
       const aIsQuality = /_imagepage|_itemrep|_original/i.test(a) ? 0 : 1;
       const bIsQuality = /_imagepage|_itemrep|_original/i.test(b) ? 0 : 1;
       return aIsQuality - bIsQuality;
