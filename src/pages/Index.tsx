@@ -67,14 +67,11 @@ const Index = () => {
     result.sort((a, b) => {
       switch (sortBy) {
         case "difficulty":
-          return (a.difficulty ?? "").localeCompare(b.difficulty ?? "");
+          return a.difficulty.localeCompare(b.difficulty);
         case "playtime":
-          return (a.play_time ?? "").localeCompare(b.play_time ?? "");
-        case "newest": {
-          const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
-          const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
-          return bTime - aTime;
-        }
+          return a.play_time.localeCompare(b.play_time);
+        case "newest":
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         default:
           return a.title.localeCompare(b.title);
       }
