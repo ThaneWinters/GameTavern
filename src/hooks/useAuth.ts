@@ -6,21 +6,50 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener BEFORE checking session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
+        
+        // Check admin role when user changes
+        if (session?.user) {
+          // Use setTimeout to avoid potential race conditions with the auth state change
+          setTimeout(async () => {
+            const { data: roleData } = await supabase
+              .from("user_roles")
+              .select("role")
+              .eq("user_id", session.user.id)
+              .eq("role", "admin")
+              .maybeSingle();
+            setIsAdmin(!!roleData);
+            setLoading(false);
+          }, 0);
+        } else {
+          setIsAdmin(false);
+          setLoading(false);
+        }
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // Check admin role if user exists
+      if (session?.user) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        setIsAdmin(!!roleData);
+      }
       setLoading(false);
     });
 
@@ -48,6 +77,7 @@ export function useAuth() {
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
+    setIsAdmin(false);
     return { error };
   };
 
@@ -59,5 +89,6 @@ export function useAuth() {
     signUp,
     signOut,
     isAuthenticated: !!user,
+    isAdmin,
   };
 }

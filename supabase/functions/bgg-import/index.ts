@@ -11,6 +11,55 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create client with user's auth token to verify identity
+    const supabaseAuth = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Verify the user token using getClaims
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid authentication" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+
+    // Create admin client with service role to check user_roles table
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Check if user has admin role in user_roles table
+    const { data: roleData, error: roleError } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (roleError || !roleData) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Admin access required" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { url } = await req.json();
     
     // Extract BGG ID from URL
@@ -37,7 +86,13 @@ Deno.serve(async (req) => {
 
     const getDescription = (xml: string) => {
       const match = xml.match(/<description>([^<]*)<\/description>/s);
-      return match ? match[1].replace(/&#10;/g, "\n").slice(0, 2000) : null;
+      if (!match) return null;
+      // Sanitize: decode HTML entities and strip any HTML tags
+      return match[1]
+        .replace(/&#10;/g, "\n")
+        .replace(/<[^>]+>/g, "") // Remove any HTML tags
+        .trim()
+        .slice(0, 2000);
     };
 
     const getImage = (xml: string) => {
@@ -98,13 +153,8 @@ Deno.serve(async (req) => {
       bgg_url: url,
     };
 
-    // Insert into database
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    const { data, error } = await supabase.from("games").insert(gameData).select().single();
+    // Use admin client for database operations (bypasses RLS for this trusted operation)
+    const { data, error } = await supabaseAdmin.from("games").insert(gameData).select().single();
 
     if (error) throw error;
 
