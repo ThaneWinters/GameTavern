@@ -182,21 +182,41 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a game data extraction assistant. Extract board game information from the provided content.
-            
-IMPORTANT: You MUST use these exact values for the fields:
+            content: `You are a board game data extraction expert. Extract detailed, structured game information from the provided content.
 
-difficulty MUST be one of: ${DIFFICULTY_LEVELS.map(d => `"${d}"`).join(", ")}
-play_time MUST be one of: ${PLAY_TIME_OPTIONS.map(p => `"${p}"`).join(", ")}
-game_type MUST be one of: ${GAME_TYPE_OPTIONS.map(t => `"${t}"`).join(", ")}
+IMPORTANT RULES:
 
-For mechanics, extract the game mechanics as an array of strings (e.g., ["Worker Placement", "Set Collection"]).
-For publisher, extract the publisher name as a string.
-For images, extract all image URLs you can find.`,
+1. For enum fields, you MUST use these EXACT values:
+   - difficulty: ${DIFFICULTY_LEVELS.map(d => `"${d}"`).join(", ")}
+   - play_time: ${PLAY_TIME_OPTIONS.map(p => `"${p}"`).join(", ")}
+   - game_type: ${GAME_TYPE_OPTIONS.map(t => `"${t}"`).join(", ")}
+
+2. For the DESCRIPTION field, create a COMPREHENSIVE, DETAILED description that includes:
+   - An engaging overview paragraph about the game
+   - A "## Quick Gameplay Overview" section with:
+     - **Goal:** What players are trying to achieve
+     - **On Your Turn:** The main actions players can take (use numbered lists)
+     - **Scoring:** How points are earned
+     - **End Game:** When and how the game ends
+   - A closing paragraph about the game's appeal/experience
+   
+   Use markdown formatting with headers (##), bold (**text**), and bullet points.
+   Make it detailed and informative - aim for 300-500 words.
+
+3. For IMAGES:
+   - main_image: The primary box art/cover image (usually the largest, highest quality image)
+   - gameplay_images: Only 1-2 images showing actual gameplay/components (NOT thumbnails or duplicates of the main image)
+   - Look for images with "gameplay", "components", "setup" in the URL or context
+   - Avoid small thumbnails (URLs with "100x100", "crop100", "300x300", etc.)
+   - Prefer full-size images (look for "_itemrep", "original", larger dimensions)
+
+4. For mechanics, extract actual game mechanics (e.g., "Worker Placement", "Set Collection", "Dice Rolling").
+
+5. For publisher, extract the publisher company name.`,
           },
           {
             role: "user",
-            content: `Extract the board game data from this page content:\n\n${markdown.slice(0, 15000)}`,
+            content: `Extract comprehensive board game data from this page content. Pay special attention to creating a detailed, structured description with gameplay overview sections.\n\nPage content:\n\n${markdown.slice(0, 20000)}`,
           },
         ],
         tools: [
@@ -209,7 +229,10 @@ For images, extract all image URLs you can find.`,
                 type: "object",
                 properties: {
                   title: { type: "string", description: "The game title" },
-                  description: { type: "string", description: "Game description/summary" },
+                  description: { 
+                    type: "string", 
+                    description: "Comprehensive game description with markdown formatting. Include overview, Quick Gameplay Overview section with Goal/Turn Actions/Scoring/End Game, and closing appeal paragraph. Aim for 300-500 words." 
+                  },
                   difficulty: { 
                     type: "string", 
                     enum: DIFFICULTY_LEVELS,
@@ -234,12 +257,13 @@ For images, extract all image URLs you can find.`,
                     description: "Game mechanics like Worker Placement, Set Collection, etc." 
                   },
                   publisher: { type: "string", description: "Publisher name" },
-                  image_url: { type: "string", description: "Main image URL" },
-                  additional_images: { 
+                  main_image: { type: "string", description: "Primary box art/cover image URL - the main, high-quality game image" },
+                  gameplay_images: { 
                     type: "array", 
                     items: { type: "string" },
-                    description: "Additional image URLs" 
+                    description: "1-2 gameplay/component images only. No thumbnails, no duplicates of main image." 
                   },
+                  bgg_url: { type: "string", description: "BoardGameGeek URL if available" },
                 },
                 required: ["title"],
                 additionalProperties: false,
@@ -349,11 +373,25 @@ For images, extract all image URLs you can find.`,
     }
 
     // Step 5: Create the game
+    // Filter gameplay images to only include valid, non-thumbnail URLs
+    const filterGameplayImages = (images: string[] | undefined): string[] => {
+      if (!images || !Array.isArray(images)) return [];
+      
+      return images
+        .filter((img: string) => {
+          if (!img || typeof img !== 'string') return false;
+          // Exclude small thumbnails
+          const isThumbnail = /crop100|100x100|150x150|200x200|300x300|thumb/i.test(img);
+          return !isThumbnail;
+        })
+        .slice(0, 2); // Max 2 gameplay images
+    };
+
     const gameData = {
       title: extractedData.title.slice(0, 500),
-      description: extractedData.description?.slice(0, 5000) || null,
-      image_url: extractedData.image_url || null,
-      additional_images: extractedData.additional_images?.slice(0, 10) || [],
+      description: extractedData.description?.slice(0, 10000) || null, // Increased limit for rich descriptions
+      image_url: extractedData.main_image || extractedData.image_url || null,
+      additional_images: filterGameplayImages(extractedData.gameplay_images || extractedData.additional_images),
       difficulty: extractedData.difficulty || "3 - Medium",
       game_type: extractedData.game_type || "Board Game",
       play_time: extractedData.play_time || "45-60 Minutes",
@@ -361,7 +399,7 @@ For images, extract all image URLs you can find.`,
       max_players: extractedData.max_players || 4,
       suggested_age: extractedData.suggested_age || "10+",
       publisher_id: publisherId,
-      bgg_url: url.includes("boardgamegeek.com") ? url : null,
+      bgg_url: extractedData.bgg_url || (url.includes("boardgamegeek.com") ? url : null),
     };
 
     const { data: game, error: gameError } = await supabaseAdmin
