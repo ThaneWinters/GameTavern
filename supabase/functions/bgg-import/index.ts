@@ -24,9 +24,12 @@ const getAllowedOrigins = (): string[] => {
 // Get CORS headers with origin validation
 const getCorsHeaders = (requestOrigin: string | null): Record<string, string> => {
   const allowedOrigins = getAllowedOrigins();
-  const origin = requestOrigin && allowedOrigins.some(allowed => 
-    requestOrigin === allowed || requestOrigin.endsWith('.lovable.app')
-  ) ? requestOrigin : allowedOrigins[0] || "*";
+  const isAllowedOrigin = requestOrigin && (
+    allowedOrigins.some(allowed => requestOrigin === allowed) ||
+    requestOrigin.endsWith('.lovable.app') ||
+    requestOrigin.endsWith('.lovableproject.com')
+  );
+  const origin = isAllowedOrigin ? requestOrigin : allowedOrigins[0] || "*";
   
   return {
     "Access-Control-Allow-Origin": origin,
