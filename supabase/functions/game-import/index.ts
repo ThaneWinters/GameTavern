@@ -136,7 +136,9 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         url,
         formats: ["markdown", "links"],
-        onlyMainContent: false, // Get full page to capture all images
+        // Main content only reduces the chance Firecrawl returns BGG "hotness"/front-page content
+        // (which can cause importing the wrong game).
+        onlyMainContent: true,
       }),
     });
 
@@ -152,17 +154,43 @@ Deno.serve(async (req) => {
     const scrapeData = await scrapeResponse.json();
     const markdown = scrapeData.data?.markdown || scrapeData.markdown;
     const links = scrapeData.data?.links || scrapeData.links || [];
-    
+
+    // Guardrail: ensure the scraped content actually matches the requested BGG game page
+    // (BGG sometimes serves "hotness"/generic content when blocked).
+    const bggIdMatch = url.match(/boardgame\/(\d+)/);
+    const requestedBggId = bggIdMatch?.[1];
+    if (requestedBggId) {
+      const looksLikeRightPage =
+        typeof markdown === "string" &&
+        (markdown.includes(requestedBggId) || markdown.toLowerCase().includes(url.toLowerCase()));
+
+      if (!looksLikeRightPage) {
+        console.error("Scrape mismatch: content does not appear to be for requested game", {
+          url,
+          requestedBggId,
+        });
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error:
+              "Could not reliably read that BoardGameGeek page (it returned unrelated content). Please try again in a moment.",
+          }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Extract image URLs from links (BGG uses cf.geekdo-images.com)
-    const imageLinks = links.filter((link: string) => 
-      link && (
-        link.includes('cf.geekdo-images.com') || 
-        link.includes('.jpg') || 
-        link.includes('.png') || 
-        link.includes('.webp')
+    const imageLinks = links.filter((link: string) =>
+      link &&
+      (
+        link.includes("cf.geekdo-images.com") ||
+        link.includes(".jpg") ||
+        link.includes(".png") ||
+        link.includes(".webp")
       )
     );
-    
+
     console.log("Found image links:", imageLinks.length);
 
     if (!markdown) {
@@ -231,8 +259,10 @@ IMPORTANT RULES:
             role: "user",
             content: `Extract comprehensive board game data from this page content.
 
+TARGET PAGE (must match): ${url}
+
 AVAILABLE IMAGE URLs (select from these EXACTLY - do not modify):
-${imageLinks.slice(0, 30).join('\n')}
+${imageLinks.slice(0, 40).join("\n")}
 
 Page content:
 ${markdown.slice(0, 18000)}`,
