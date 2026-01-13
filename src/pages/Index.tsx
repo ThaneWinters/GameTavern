@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { ArrowUpDown, X } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { GameGrid } from "@/components/games/GameGrid";
@@ -14,8 +14,18 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 type SortOption = "title" | "difficulty" | "playtime" | "newest";
+
+const ITEMS_PER_PAGE = 20;
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -24,8 +34,9 @@ const Index = () => {
   const filter = searchParams.get("filter");
   const filterValue = searchParams.get("value");
   const sortBy = (searchParams.get("sort") as SortOption) || "title";
+  const currentPage = parseInt(searchParams.get("page") || "1", 10);
 
-  // Filter games
+  // Filter and sort games
   const filteredGames = useMemo(() => {
     let result = [...games];
 
@@ -69,6 +80,13 @@ const Index = () => {
     return result;
   }, [games, filter, filterValue, sortBy]);
 
+  // Pagination
+  const totalPages = Math.ceil(filteredGames.length / ITEMS_PER_PAGE);
+  const paginatedGames = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredGames.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredGames, currentPage]);
+
   const handleSortChange = (value: string) => {
     const newParams = new URLSearchParams(searchParams);
     if (value === "title") {
@@ -76,7 +94,19 @@ const Index = () => {
     } else {
       newParams.set("sort", value);
     }
+    newParams.delete("page"); // Reset to page 1 when sorting changes
     setSearchParams(newParams);
+  };
+
+  const handlePageChange = (page: number) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (page === 1) {
+      newParams.delete("page");
+    } else {
+      newParams.set("page", page.toString());
+    }
+    setSearchParams(newParams);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const clearFilters = () => {
@@ -84,6 +114,23 @@ const Index = () => {
   };
 
   const hasActiveFilters = !!filter;
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages: (number | "ellipsis")[] = [];
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("ellipsis");
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+        pages.push(i);
+      }
+      if (currentPage < totalPages - 2) pages.push("ellipsis");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
 
   return (
     <Layout>
@@ -96,6 +143,7 @@ const Index = () => {
             </h1>
             <p className="text-muted-foreground mt-1">
               {filteredGames.length} {filteredGames.length === 1 ? "game" : "games"} in collection
+              {totalPages > 1 && ` • Page ${currentPage} of ${totalPages}`}
             </p>
           </div>
 
@@ -142,8 +190,8 @@ const Index = () => {
 
       {/* Game Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {[...Array(8)].map((_, i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          {[...Array(20)].map((_, i) => (
             <div key={i} className="space-y-3">
               <Skeleton className="aspect-square rounded-lg" />
               <Skeleton className="h-6 w-3/4" />
@@ -152,7 +200,46 @@ const Index = () => {
           ))}
         </div>
       ) : (
-        <GameGrid games={filteredGames} />
+        <>
+          <GameGrid games={paginatedGames} />
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <Pagination className="mt-8">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                
+                {getPageNumbers().map((page, index) => (
+                  <PaginationItem key={index}>
+                    {page === "ellipsis" ? (
+                      <span className="px-3 py-2">...</span>
+                    ) : (
+                      <PaginationLink
+                        onClick={() => handlePageChange(page)}
+                        isActive={currentPage === page}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    )}
+                  </PaginationItem>
+                ))}
+                
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </>
       )}
     </Layout>
   );

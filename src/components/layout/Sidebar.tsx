@@ -9,7 +9,8 @@ import {
   LogIn,
   LogOut,
   User,
-  Settings
+  Settings,
+  ChevronDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DIFFICULTY_OPTIONS, GAME_TYPE_OPTIONS, PLAY_TIME_OPTIONS } from "@/types/game";
@@ -18,9 +19,40 @@ import { useAuth } from "@/hooks/useAuth";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface SidebarProps {
   isOpen: boolean;
+}
+
+interface FilterSectionProps {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}
+
+function FilterSection({ title, icon, children, defaultOpen = false }: FilterSectionProps) {
+  return (
+    <Collapsible defaultOpen={defaultOpen} className="mt-6">
+      <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-2 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors">
+        <span className="flex items-center gap-2">
+          {icon}
+          {title}
+        </span>
+        <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="mt-1">
+        <nav className="space-y-1">
+          {children}
+        </nav>
+      </CollapsibleContent>
+    </Collapsible>
+  );
 }
 
 export function Sidebar({ isOpen }: SidebarProps) {
@@ -92,114 +124,84 @@ export function Sidebar({ isOpen }: SidebarProps) {
           </nav>
 
           {/* Difficulty */}
-          <div className="mt-8">
-            <h3 className="mb-3 flex items-center gap-2 px-4 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-              <Star className="h-4 w-4" />
-              Difficulty
-            </h3>
-            <nav className="space-y-1">
-              {DIFFICULTY_OPTIONS.map((diff) => (
-                <Link
-                  key={diff}
-                  to={createFilterUrl("difficulty", diff)}
-                  className={cn(
-                    "sidebar-link text-sm",
-                    isActive("difficulty", diff) && "sidebar-link-active"
-                  )}
-                >
-                  {diff}
-                </Link>
-              ))}
-            </nav>
-          </div>
+          <FilterSection title="Difficulty" icon={<Star className="h-4 w-4" />} defaultOpen={currentFilter === "difficulty"}>
+            {DIFFICULTY_OPTIONS.map((diff) => (
+              <Link
+                key={diff}
+                to={createFilterUrl("difficulty", diff)}
+                className={cn(
+                  "sidebar-link text-sm",
+                  isActive("difficulty", diff) && "sidebar-link-active"
+                )}
+              >
+                {diff}
+              </Link>
+            ))}
+          </FilterSection>
 
           {/* Game Type */}
-          <div className="mt-8">
-            <h3 className="mb-3 flex items-center gap-2 px-4 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-              <Gamepad2 className="h-4 w-4" />
-              Type
-            </h3>
-            <nav className="space-y-1">
-              {GAME_TYPE_OPTIONS.map((type) => (
-                <Link
-                  key={type}
-                  to={createFilterUrl("type", type)}
-                  className={cn(
-                    "sidebar-link text-sm",
-                    isActive("type", type) && "sidebar-link-active"
-                  )}
-                >
-                  {type}
-                </Link>
-              ))}
-            </nav>
-          </div>
+          <FilterSection title="Type" icon={<Gamepad2 className="h-4 w-4" />} defaultOpen={currentFilter === "type"}>
+            {GAME_TYPE_OPTIONS.map((type) => (
+              <Link
+                key={type}
+                to={createFilterUrl("type", type)}
+                className={cn(
+                  "sidebar-link text-sm",
+                  isActive("type", type) && "sidebar-link-active"
+                )}
+              >
+                {type}
+              </Link>
+            ))}
+          </FilterSection>
 
           {/* Play Time */}
-          <div className="mt-8">
-            <h3 className="mb-3 flex items-center gap-2 px-4 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-              <Clock className="h-4 w-4" />
-              Play Time
-            </h3>
-            <nav className="space-y-1">
-              {PLAY_TIME_OPTIONS.map((time) => (
-                <Link
-                  key={time}
-                  to={createFilterUrl("playtime", time)}
-                  className={cn(
-                    "sidebar-link text-sm",
-                    isActive("playtime", time) && "sidebar-link-active"
-                  )}
-                >
-                  {time}
-                </Link>
-              ))}
-            </nav>
-          </div>
+          <FilterSection title="Play Time" icon={<Clock className="h-4 w-4" />} defaultOpen={currentFilter === "playtime"}>
+            {PLAY_TIME_OPTIONS.map((time) => (
+              <Link
+                key={time}
+                to={createFilterUrl("playtime", time)}
+                className={cn(
+                  "sidebar-link text-sm",
+                  isActive("playtime", time) && "sidebar-link-active"
+                )}
+              >
+                {time}
+              </Link>
+            ))}
+          </FilterSection>
 
           {/* Mechanics */}
-          <div className="mt-8">
-            <h3 className="mb-3 flex items-center gap-2 px-4 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-              <Puzzle className="h-4 w-4" />
-              Mechanics
-            </h3>
-            <nav className="space-y-1">
-              {mechanics.slice(0, 10).map((mech) => (
-                <Link
-                  key={mech.id}
-                  to={createFilterUrl("mechanic", mech.name)}
-                  className={cn(
-                    "sidebar-link text-sm",
-                    isActive("mechanic", mech.name) && "sidebar-link-active"
-                  )}
-                >
-                  {mech.name}
-                </Link>
-              ))}
-            </nav>
-          </div>
+          <FilterSection title="Mechanics" icon={<Puzzle className="h-4 w-4" />} defaultOpen={currentFilter === "mechanic"}>
+            {mechanics.slice(0, 10).map((mech) => (
+              <Link
+                key={mech.id}
+                to={createFilterUrl("mechanic", mech.name)}
+                className={cn(
+                  "sidebar-link text-sm",
+                  isActive("mechanic", mech.name) && "sidebar-link-active"
+                )}
+              >
+                {mech.name}
+              </Link>
+            ))}
+          </FilterSection>
 
           {/* Publishers */}
-          <div className="mt-8">
-            <h3 className="mb-3 flex items-center gap-2 px-4 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-              <Building2 className="h-4 w-4" />
-              Publishers
-            </h3>
-            <nav className="space-y-1">
-              {publishers.slice(0, 8).map((pub) => (
-                <Link
-                  key={pub.id}
-                  to={createFilterUrl("publisher", pub.name)}
-                  className={cn(
-                    "sidebar-link text-sm",
-                    isActive("publisher", pub.name) && "sidebar-link-active"
-                  )}
-                >
-                  {pub.name}
-                </Link>
-              ))}
-            </nav>
-          </div>
+          <FilterSection title="Publishers" icon={<Building2 className="h-4 w-4" />} defaultOpen={currentFilter === "publisher"}>
+            {publishers.slice(0, 8).map((pub) => (
+              <Link
+                key={pub.id}
+                to={createFilterUrl("publisher", pub.name)}
+                className={cn(
+                  "sidebar-link text-sm",
+                  isActive("publisher", pub.name) && "sidebar-link-active"
+                )}
+              >
+                {pub.name}
+              </Link>
+            ))}
+          </FilterSection>
         </ScrollArea>
 
         {/* User Section - Only show when authenticated */}
