@@ -519,81 +519,38 @@ ${markdown.slice(0, 18000)}`,
       }
     };
 
-    // Validate that an image URL is actually accessible
-    // NOTE: Some CDNs reject HEAD, so we do a tiny ranged GET.
-    const validateImageUrl = async (imageUrl: string): Promise<boolean> => {
-      const safeUrl = sanitizeImageUrl(imageUrl);
-      try {
-        const response = await fetch(safeUrl, {
-          method: "GET",
-          headers: {
-            "Accept": "image/*,*/*;q=0.8",
-            // Range keeps bandwidth tiny while still validating the resource
-            "Range": "bytes=0-0",
-            "User-Agent": "LovableGameImporter/1.0",
-          },
-          redirect: "follow",
-        });
+    // NOTE: We intentionally do NOT try to "validate" image URLs server-side.
+    // BGG's image CDN can reject server-side fetches (403/400) even though the same URLs load fine in the browser,
+    // which would incorrectly strip images from imports.
 
-        // Some CDNs return 206 for ranged success
-        return response.status === 200 || response.status === 206;
-      } catch {
-        return false;
-      }
-    };
-
-    // Filter and validate gameplay images
-    const filterAndValidateImages = async (images: string[] | undefined): Promise<string[]> => {
+    const filterGameplayImages = (images: string[] | undefined): string[] => {
       if (!images || !Array.isArray(images)) return [];
 
       const filtered = images
         .map((img) => sanitizeImageUrl(img))
-        .filter((img: string) => {
+        .filter((img) => {
           if (!img || typeof img !== "string") return false;
-          // Exclude small thumbnails
-          const isThumbnail = /crop100|square30|100x100|150x150|200x200|300x300|thumb/i.test(img);
-          if (isThumbnail) return false;
-          // Exclude box-art-ish images as gameplay (keep those for main)
-          const looksLikeBox = /_itemrep/i.test(img);
-          return !looksLikeBox;
-        })
-        .slice(0, 8); // Check up to 8 to find 1-2 valid gameplay images
+          // Exclude thumbnails / low-res
+          if (/crop100|square30|100x100|150x150|200x200|300x300|thumb/i.test(img)) return false;
+          // Don't treat box-art representations as gameplay images
+          if (/_itemrep/i.test(img)) return false;
+          return true;
+        });
 
-      const validatedImages: string[] = [];
-      for (const img of filtered) {
-        if (validatedImages.length >= 2) break; // Max 2 gameplay images
-        const isValid = await validateImageUrl(img);
-        if (isValid) {
-          console.log("Valid gameplay image:", img);
-          validatedImages.push(img);
-        } else {
-          console.log("Invalid gameplay image (skipping):", img);
-        }
-      }
-
-      return validatedImages;
+      // Deduplicate & limit
+      return [...new Set(filtered)].slice(0, 2);
     };
 
-    // Validate main image
+    // Main image (box art) - just sanitize/encode
     const mainImageCandidateRaw = extractedData.main_image || extractedData.image_url;
-    const mainImageCandidate = mainImageCandidateRaw ? sanitizeImageUrl(mainImageCandidateRaw) : null;
+    const validMainImage: string | null = mainImageCandidateRaw
+      ? sanitizeImageUrl(mainImageCandidateRaw)
+      : null;
 
-    let validMainImage: string | null = null;
-    if (mainImageCandidate) {
-      const isValid = await validateImageUrl(mainImageCandidate);
-      if (isValid) {
-        validMainImage = mainImageCandidate;
-      } else {
-        console.log("Main image invalid, will be null:", mainImageCandidate);
-      }
-    }
-
-    // Validate gameplay images and ensure they aren't duplicates of the main image
+    // Gameplay images - sanitize, filter, ensure not duplicate of main
     const gameplayCandidates = extractedData.gameplay_images || extractedData.additional_images;
-    let validGameplayImages = await filterAndValidateImages(gameplayCandidates);
-    if (validMainImage) {
-      validGameplayImages = validGameplayImages.filter((u) => u !== validMainImage);
-    }
+    let validGameplayImages = filterGameplayImages(gameplayCandidates);
+    if (validMainImage) validGameplayImages = validGameplayImages.filter((u) => u !== validMainImage);
 
     const gameData = {
       title: extractedData.title.slice(0, 500),
