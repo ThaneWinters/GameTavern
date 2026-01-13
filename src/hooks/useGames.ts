@@ -2,40 +2,23 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Game, GameWithRelations, Mechanic, Publisher, DifficultyLevel, GameType, PlayTime } from "@/types/game";
 
-export function useGames() {
+export function useGames(enabled = true) {
   return useQuery({
     queryKey: ["games"],
     queryFn: async (): Promise<GameWithRelations[]> => {
-      // Fetch games with publisher
+      // Single query with nested joins for better performance
       const { data: games, error: gamesError } = await supabase
         .from("games")
         .select(`
           *,
-          publisher:publishers(id, name)
+          publisher:publishers(id, name),
+          game_mechanics(
+            mechanic:mechanics(id, name)
+          )
         `)
         .order("title");
 
       if (gamesError) throw gamesError;
-
-      // Fetch game mechanics with mechanic details
-      const { data: gameMechanics, error: mechanicsError } = await supabase
-        .from("game_mechanics")
-        .select(`
-          game_id,
-          mechanic:mechanics(id, name)
-        `);
-
-      if (mechanicsError) throw mechanicsError;
-
-      // Map mechanics to games
-      const mechanicsMap = new Map<string, Mechanic[]>();
-      gameMechanics?.forEach((gm: { game_id: string; mechanic: Mechanic | null }) => {
-        if (gm.mechanic) {
-          const existing = mechanicsMap.get(gm.game_id) || [];
-          existing.push(gm.mechanic);
-          mechanicsMap.set(gm.game_id, existing);
-        }
-      });
 
       return (games || []).map((game) => ({
         ...game,
@@ -43,9 +26,13 @@ export function useGames() {
         game_type: game.game_type as GameType,
         play_time: game.play_time as PlayTime,
         additional_images: game.additional_images || [],
-        mechanics: mechanicsMap.get(game.id) || [],
+        mechanics: (game.game_mechanics || [])
+          .map((gm: { mechanic: Mechanic | null }) => gm.mechanic)
+          .filter((m): m is Mechanic => m !== null),
       }));
     },
+    enabled,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
 

@@ -47,9 +47,11 @@ import { supabase } from "@/integrations/supabase/client";
 const Settings = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, isAdmin, loading } = useAuth();
-  const { data: games = [], isLoading: gamesLoading } = useGames();
-  const deleteGame = useDeleteGame();
   const { toast } = useToast();
+  const deleteGame = useDeleteGame();
+  
+  // Only fetch games when admin (lazy load for performance)
+  const { data: games = [], isLoading: gamesLoading } = useGames(isAdmin);
 
   const [bggUrl, setBggUrl] = useState("");
   const [isImporting, setIsImporting] = useState(false);
