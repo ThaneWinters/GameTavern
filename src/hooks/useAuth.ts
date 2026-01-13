@@ -75,24 +75,48 @@ export function useAuth() {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    // Workaround: in some environments the SDK call can appear to hang even though
+    // the underlying network request succeeds. We call the auth endpoint directly
+    // and then hydrate the SDK session via setSession.
+    const controller = new AbortController();
     const timeoutMs = 15000;
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const result = await Promise.race([
-        supabase.auth.signInWithPassword({
-          email,
-          password,
-        }),
-        new Promise<{ error: { message: string } }>((resolve) =>
-          setTimeout(() => resolve({ error: { message: "Sign in timed out. Please try again." } }), timeoutMs)
-        ),
-      ]);
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/token?grant_type=password`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ email, password }),
+        signal: controller.signal,
+      });
 
-      // Normalize to the existing { error } return shape.
-      const normalized = result as any;
-      return { error: normalized?.error ?? null };
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const msg = (json as any)?.error_description || (json as any)?.error || "Invalid login credentials";
+        return { error: { message: msg } };
+      }
+
+      const access_token = (json as any)?.access_token as string | undefined;
+      const refresh_token = (json as any)?.refresh_token as string | undefined;
+
+      if (!access_token || !refresh_token) {
+        return { error: { message: "Sign in succeeded but session tokens were missing." } };
+      }
+
+      const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+      return { error };
     } catch (e: any) {
+      if (e?.name === "AbortError") {
+        return { error: { message: "Sign in timed out. Please try again." } };
+      }
       return { error: { message: e?.message || "Sign in failed. Please try again." } };
+    } finally {
+      clearTimeout(timeout);
     }
   };
 
