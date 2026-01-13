@@ -1,6 +1,8 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, ExternalLink, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Layout } from "@/components/layout/Layout";
 import { useGame, useGames } from "@/hooks/useGames";
 import { useAuth } from "@/hooks/useAuth";
@@ -96,63 +98,52 @@ const GameDetail = () => {
     })
     .slice(0, 6);
 
-  // Parse description for structured content
-  const renderDescription = (description: string | null) => {
-    if (!description) {
+  // Render markdown description with proper styling
+  const DescriptionContent = ({ content }: { content: string | null }) => {
+    if (!content) {
       return <p className="text-muted-foreground italic">No description available.</p>;
     }
 
-    // Split by common section headers
-    const sections = description.split(/\n(?=##?\s)/);
-    
     return (
-      <div className="space-y-6">
-        {sections.map((section, idx) => {
-          const lines = section.trim().split('\n');
-          const firstLine = lines[0];
-          
-          // Check if it's a header
-          if (firstLine.startsWith('## ')) {
-            const headerText = firstLine.replace('## ', '');
-            const content = lines.slice(1).join('\n').trim();
-            return (
-              <div key={idx}>
-                <h3 className="font-display text-lg font-semibold text-foreground mb-3">
-                  {headerText}
-                </h3>
-                <div className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                  {renderFormattedText(content)}
-                </div>
-              </div>
-            );
-          }
-          
-          // Regular paragraph
-          return (
-            <div key={idx} className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-              {renderFormattedText(section.trim())}
-            </div>
-          );
-        })}
-      </div>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          h2: ({ children }) => (
+            <h2 className="font-display text-xl font-semibold text-foreground mt-6 mb-3 first:mt-0">
+              {children}
+            </h2>
+          ),
+          h3: ({ children }) => (
+            <h3 className="font-display text-lg font-semibold text-foreground mt-4 mb-2">
+              {children}
+            </h3>
+          ),
+          p: ({ children }) => (
+            <p className="text-muted-foreground leading-relaxed mb-4">
+              {children}
+            </p>
+          ),
+          strong: ({ children }) => (
+            <strong className="font-semibold text-foreground">{children}</strong>
+          ),
+          ul: ({ children }) => (
+            <ul className="list-disc list-inside space-y-2 text-muted-foreground mb-4 ml-2">
+              {children}
+            </ul>
+          ),
+          ol: ({ children }) => (
+            <ol className="list-decimal list-inside space-y-2 text-muted-foreground mb-4 ml-2">
+              {children}
+            </ol>
+          ),
+          li: ({ children }) => (
+            <li className="leading-relaxed">{children}</li>
+          ),
+        }}
+      >
+        {content}
+      </ReactMarkdown>
     );
-  };
-
-  // Handle basic markdown formatting
-  const renderFormattedText = (text: string) => {
-    // Split by bold markers and render
-    const parts = text.split(/(\*\*[^*]+\*\*)/g);
-    
-    return parts.map((part, idx) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return (
-          <strong key={idx} className="font-semibold text-foreground">
-            {part.slice(2, -2)}
-          </strong>
-        );
-      }
-      return <span key={idx}>{part}</span>;
-    });
   };
 
   return (
@@ -299,7 +290,7 @@ const GameDetail = () => {
                   <h2 className="font-display text-xl font-semibold mb-4 text-foreground">
                     Description
                   </h2>
-                  {renderDescription(game.description)}
+                  <DescriptionContent content={game.description} />
                 </div>
               </TabsContent>
 
