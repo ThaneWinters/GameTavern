@@ -11,11 +11,45 @@ export function useAuth() {
   useEffect(() => {
     let mounted = true;
 
-    const fetchIsAdmin = async (userId: string) => {
+    const fetchIsAdmin = async (userId: string, accessToken?: string) => {
       // Role lookup should never block auth UI rendering.
       const timeoutMs = 3000;
 
+      // Prefer a direct REST call with the access token.
+      // This avoids any SDK auth-storage lock edge cases.
+      const tryDirect = async () => {
+        if (!accessToken) return null;
+        const controller = new AbortController();
+        const t = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/user_roles`);
+          url.searchParams.set("select", "role");
+          url.searchParams.set("user_id", `eq.${userId}`);
+          url.searchParams.set("role", "eq.admin");
+          url.searchParams.set("limit", "1");
+
+          const res = await fetch(url.toString(), {
+            headers: {
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              Authorization: `Bearer ${accessToken}`,
+            },
+            signal: controller.signal,
+          });
+
+          if (!res.ok) return false;
+          const json = (await res.json().catch(() => [])) as Array<{ role: string }>;
+          return Array.isArray(json) && json.length > 0;
+        } catch {
+          return null;
+        } finally {
+          clearTimeout(t);
+        }
+      };
+
       try {
+        const direct = await tryDirect();
+        if (direct !== null) return direct;
+
         const result = await Promise.race([
           supabase
             .from("user_roles")
@@ -23,7 +57,9 @@ export function useAuth() {
             .eq("user_id", userId)
             .eq("role", "admin")
             .maybeSingle(),
-          new Promise<{ data: null; error: null }>((resolve) => setTimeout(() => resolve({ data: null, error: null }), timeoutMs)),
+          new Promise<{ data: null; error: null }>((resolve) =>
+            setTimeout(() => resolve({ data: null, error: null }), timeoutMs)
+          ),
         ]);
 
         const { data, error } = result as any;
@@ -53,7 +89,7 @@ export function useAuth() {
       }
 
       // Fetch role in background; do not block rendering.
-      fetchIsAdmin(nextSession.user.id).then((nextIsAdmin) => {
+      fetchIsAdmin(nextSession.user.id, (nextSession as any)?.access_token).then((nextIsAdmin) => {
         if (!mounted) return;
         setIsAdmin(nextIsAdmin);
       });
