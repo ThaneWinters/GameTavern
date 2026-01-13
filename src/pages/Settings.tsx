@@ -175,12 +175,18 @@ const Settings = () => {
 
   const handleImport = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!importUrl.trim()) return;
+    const trimmed = importUrl.trim();
+    if (!trimmed) return;
+
+    // Use the dedicated BGG importer for BoardGameGeek boardgame pages.
+    // The general-purpose importer relies on scraping and can occasionally fetch unrelated content.
+    const isBggBoardgame = /https?:\/\/(www\.)?boardgamegeek\.com\/boardgame\/\d+/i.test(trimmed);
+    const functionName = isBggBoardgame ? "bgg-import" : "game-import";
 
     setIsImporting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("game-import", {
-        body: { url: importUrl },
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: { url: trimmed },
       });
 
       if (error) throw error;
@@ -188,7 +194,7 @@ const Settings = () => {
       if (data.success) {
         // Invalidate the games cache so the collection updates immediately
         queryClient.invalidateQueries({ queryKey: ["games"] });
-        
+
         toast({
           title: "Game imported!",
           description: `"${data.game.title}" has been added to your collection.`,
