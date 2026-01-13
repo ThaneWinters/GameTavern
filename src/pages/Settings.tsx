@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { 
   User, 
   Shield, 
@@ -63,6 +64,7 @@ type UserWithRole = {
 
 const Settings = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, isAuthenticated, isAdmin, loading } = useAuth();
   const { toast } = useToast();
   const deleteGame = useDeleteGame();
@@ -184,6 +186,9 @@ const Settings = () => {
       if (error) throw error;
 
       if (data.success) {
+        // Invalidate the games cache so the collection updates immediately
+        queryClient.invalidateQueries({ queryKey: ["games"] });
+        
         toast({
           title: "Game imported!",
           description: `"${data.game.title}" has been added to your collection.`,
