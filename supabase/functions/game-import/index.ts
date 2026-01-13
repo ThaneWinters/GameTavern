@@ -135,8 +135,8 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         url,
-        formats: ["markdown"],
-        onlyMainContent: true,
+        formats: ["markdown", "links"],
+        onlyMainContent: false, // Get full page to capture all images
       }),
     });
 
@@ -151,6 +151,19 @@ Deno.serve(async (req) => {
 
     const scrapeData = await scrapeResponse.json();
     const markdown = scrapeData.data?.markdown || scrapeData.markdown;
+    const links = scrapeData.data?.links || scrapeData.links || [];
+    
+    // Extract image URLs from links (BGG uses cf.geekdo-images.com)
+    const imageLinks = links.filter((link: string) => 
+      link && (
+        link.includes('cf.geekdo-images.com') || 
+        link.includes('.jpg') || 
+        link.includes('.png') || 
+        link.includes('.webp')
+      )
+    );
+    
+    console.log("Found image links:", imageLinks.length);
 
     if (!markdown) {
       return new Response(
@@ -203,12 +216,12 @@ IMPORTANT RULES:
    Use markdown formatting with headers (##), bold (**text**), and bullet points.
    Make it detailed and informative - aim for 300-500 words.
 
-3. For IMAGES:
-   - main_image: The primary box art/cover image (usually the largest, highest quality image)
-   - gameplay_images: Only 1-2 images showing actual gameplay/components (NOT thumbnails or duplicates of the main image)
-   - Look for images with "gameplay", "components", "setup" in the URL or context
-   - Avoid small thumbnails (URLs with "100x100", "crop100", "300x300", etc.)
-   - Prefer full-size images (look for "_itemrep", "original", larger dimensions)
+3. For IMAGES - CRITICAL:
+   - You will be given a list of IMAGE URLs extracted from the page
+   - You MUST select from these exact URLs - DO NOT modify or guess URLs
+   - For main_image: Pick the best box art image (look for "_imagepage" or "_itemrep" in URL, avoid "crop" or small sizes)
+   - For gameplay_images: Pick 1-2 images showing gameplay/components (different from main image)
+   - If no suitable images in the list, leave the fields empty
 
 4. For mechanics, extract actual game mechanics (e.g., "Worker Placement", "Set Collection", "Dice Rolling").
 
@@ -216,7 +229,13 @@ IMPORTANT RULES:
           },
           {
             role: "user",
-            content: `Extract comprehensive board game data from this page content. Pay special attention to creating a detailed, structured description with gameplay overview sections.\n\nPage content:\n\n${markdown.slice(0, 20000)}`,
+            content: `Extract comprehensive board game data from this page content.
+
+AVAILABLE IMAGE URLs (select from these EXACTLY - do not modify):
+${imageLinks.slice(0, 30).join('\n')}
+
+Page content:
+${markdown.slice(0, 18000)}`,
           },
         ],
         tools: [
