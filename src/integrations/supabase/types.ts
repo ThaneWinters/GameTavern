@@ -62,6 +62,7 @@ export type Database = {
           min_players: number | null
           play_time: Database["public"]["Enums"]["play_time"] | null
           publisher_id: string | null
+          slug: string | null
           suggested_age: string | null
           title: string
           updated_at: string | null
@@ -80,6 +81,7 @@ export type Database = {
           min_players?: number | null
           play_time?: Database["public"]["Enums"]["play_time"] | null
           publisher_id?: string | null
+          slug?: string | null
           suggested_age?: string | null
           title: string
           updated_at?: string | null
@@ -98,6 +100,7 @@ export type Database = {
           min_players?: number | null
           play_time?: Database["public"]["Enums"]["play_time"] | null
           publisher_id?: string | null
+          slug?: string | null
           suggested_age?: string | null
           title?: string
           updated_at?: string | null
@@ -174,6 +177,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_slug: { Args: { title: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
