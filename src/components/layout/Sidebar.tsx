@@ -8,13 +8,17 @@ import {
   Wrench,
   Star,
   Shield,
-  LogIn
+  LogIn,
+  LogOut,
+  User
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DIFFICULTY_OPTIONS, GAME_TYPE_OPTIONS, PLAY_TIME_OPTIONS } from "@/types/game";
 import { useMechanics, usePublishers } from "@/hooks/useGames";
 import { useAuth } from "@/hooks/useAuth";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -25,7 +29,24 @@ export function Sidebar({ isOpen }: SidebarProps) {
   const [searchParams] = useSearchParams();
   const { data: mechanics = [] } = useMechanics();
   const { data: publishers = [] } = usePublishers();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, signOut, isAdmin } = useAuth();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast({
+        title: "Error signing out",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Signed out",
+        description: "You have been signed out successfully.",
+      });
+    }
+  };
 
   const currentFilter = searchParams.get("filter");
   const currentValue = searchParams.get("value");
@@ -182,23 +203,39 @@ export function Sidebar({ isOpen }: SidebarProps) {
           </div>
         </ScrollArea>
 
-        {/* Admin Link */}
-        <div className="border-t border-sidebar-border p-4">
+        {/* User Section */}
+        <div className="border-t border-sidebar-border p-4 space-y-2">
           {isAuthenticated ? (
-            <Link
-              to="/admin"
-              className="sidebar-link justify-center bg-sidebar-accent"
-            >
-              <Shield className="h-5 w-5" />
-              <span>Admin Panel</span>
-            </Link>
+            <>
+              <div className="flex items-center gap-2 px-4 py-2 text-sm text-sidebar-foreground/80">
+                <User className="h-4 w-4" />
+                <span className="truncate">{user?.email}</span>
+              </div>
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className="sidebar-link justify-center bg-sidebar-accent"
+                >
+                  <Shield className="h-5 w-5" />
+                  <span>Admin Panel</span>
+                </Link>
+              )}
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-5 w-5" />
+                <span>Sign Out</span>
+              </Button>
+            </>
           ) : (
             <Link
               to="/login"
               className="sidebar-link justify-center bg-sidebar-accent"
             >
               <LogIn className="h-5 w-5" />
-              <span>Admin Login</span>
+              <span>Sign In</span>
             </Link>
           )}
         </div>
