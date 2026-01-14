@@ -81,6 +81,7 @@ const Settings = () => {
   const [importUrl, setImportUrl] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [importAsComingSoon, setImportAsComingSoon] = useState(false);
+  const [importAsForSale, setImportAsForSale] = useState(false);
   
   // Profile form states
   const [newEmail, setNewEmail] = useState("");
@@ -254,7 +255,7 @@ const Settings = () => {
     try {
       const invoke = async (fn: string) =>
         supabase.functions.invoke(fn, {
-          body: { url: trimmed, is_coming_soon: importAsComingSoon },
+          body: { url: trimmed, is_coming_soon: importAsComingSoon, is_for_sale: importAsForSale },
         });
 
       let data: any;
@@ -280,10 +281,11 @@ const Settings = () => {
 
         toast({
           title: "Game imported!",
-          description: `"${data.game.title}" has been added to your ${importAsComingSoon ? '"Coming Soon" list' : 'collection'}.`,
+          description: `"${data.game.title}" has been added to your ${importAsComingSoon ? '"Coming Soon" list' : importAsForSale ? '"For Sale" section' : 'collection'}.`,
         });
         setImportUrl("");
         setImportAsComingSoon(false);
+        setImportAsForSale(false);
       } else {
         throw new Error(data?.error || "Import failed");
       }
@@ -746,6 +748,22 @@ const Settings = () => {
                           </label>
                           <p className="text-xs text-muted-foreground">
                             Mark as purchased/backed but not yet received
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 rounded-lg border border-green-500/30 bg-green-500/10">
+                        <Checkbox
+                          id="import-for-sale"
+                          checked={importAsForSale}
+                          onCheckedChange={(checked) => setImportAsForSale(checked === true)}
+                          disabled={isImporting}
+                        />
+                        <div className="space-y-0.5">
+                          <label htmlFor="import-for-sale" className="text-sm font-medium cursor-pointer">
+                            For Sale
+                          </label>
+                          <p className="text-xs text-muted-foreground">
+                            Mark as available for sale in the marketplace
                           </p>
                         </div>
                       </div>

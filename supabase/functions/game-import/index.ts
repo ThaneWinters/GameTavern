@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { url, is_coming_soon } = await req.json();
+    const { url, is_coming_soon, is_for_sale } = await req.json();
 
     // Validate input URL
     if (!url || typeof url !== "string") {
@@ -523,6 +523,7 @@ ${markdown.slice(0, 18000)}`,
       publisher_id: publisherId,
       bgg_url: extractedData.bgg_url || (url.includes("boardgamegeek.com") ? url : null),
       is_coming_soon: is_coming_soon === true,
+      is_for_sale: is_for_sale === true,
     };
 
     // Upsert: if we already have a game for this BGG URL, update it instead of inserting a duplicate slug.
