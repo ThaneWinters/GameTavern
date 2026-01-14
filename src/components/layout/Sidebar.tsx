@@ -18,8 +18,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DIFFICULTY_OPTIONS, GAME_TYPE_OPTIONS, PLAY_TIME_OPTIONS } from "@/types/game";
-import { useMechanics, usePublishers } from "@/hooks/useGames";
+import { useGames, useMechanics, usePublishers } from "@/hooks/useGames";
 import { useAuth } from "@/hooks/useAuth";
+import { useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -62,10 +63,24 @@ function FilterSection({ title, icon, children, defaultOpen = false }: FilterSec
 export function Sidebar({ isOpen }: SidebarProps) {
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const { data: games = [] } = useGames();
   const { data: mechanics = [] } = useMechanics();
   const { data: publishers = [] } = usePublishers();
   const { isAuthenticated, user, signOut, isAdmin } = useAuth();
   const { toast } = useToast();
+
+  // Generate unique player count options from games
+  const playerCountOptions = useMemo(() => {
+    const counts = new Set<number>();
+    games.forEach((game) => {
+      const min = game.min_players ?? 1;
+      const max = game.max_players ?? min;
+      for (let i = min; i <= Math.min(max, 10); i++) {
+        counts.add(i);
+      }
+    });
+    return Array.from(counts).sort((a, b) => a - b);
+  }, [games]);
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -149,16 +164,16 @@ export function Sidebar({ isOpen }: SidebarProps) {
 
           {/* Number of Players */}
           <FilterSection title="Players" icon={<Users className="h-4 w-4" />} defaultOpen={currentFilter === "players"}>
-            {["1 Player", "2 Players", "3-4 Players", "5-6 Players", "7+ Players"].map((option) => (
+            {playerCountOptions.map((count) => (
               <Link
-                key={option}
-                to={createFilterUrl("players", option)}
+                key={count}
+                to={createFilterUrl("players", count.toString())}
                 className={cn(
                   "sidebar-link text-sm",
-                  isActive("players", option) && "sidebar-link-active"
+                  isActive("players", count.toString()) && "sidebar-link-active"
                 )}
               >
-                {option}
+                {count} {count === 1 ? "Player" : "Players"}
               </Link>
             ))}
           </FilterSection>

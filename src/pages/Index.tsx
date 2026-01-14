@@ -54,24 +54,14 @@ const Index = () => {
       if (filter && filterValue) {
         switch (filter) {
           case "players":
-            result = result.filter((g) => {
-              const min = g.min_players ?? 0;
-              const max = g.max_players ?? min;
-              switch (filterValue) {
-                case "1 Player":
-                  return min <= 1 && max >= 1;
-                case "2 Players":
-                  return min <= 2 && max >= 2;
-                case "3-4 Players":
-                  return min <= 4 && max >= 3;
-                case "5-6 Players":
-                  return min <= 6 && max >= 5;
-                case "7+ Players":
-                  return max >= 7;
-                default:
-                  return true;
-              }
-            });
+            const playerCount = parseInt(filterValue, 10);
+            if (!isNaN(playerCount)) {
+              result = result.filter((g) => {
+                const min = g.min_players ?? 1;
+                const max = g.max_players ?? min;
+                return min <= playerCount && max >= playerCount;
+              });
+            }
             break;
           case "difficulty":
             result = result.filter((g) => g.difficulty === filterValue);
