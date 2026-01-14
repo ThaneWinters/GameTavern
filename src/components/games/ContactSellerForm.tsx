@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 const contactSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
-  message: z.string().trim().min(1, "Message is required").max(1000, "Message must be less than 1000 characters"),
+  message: z.string().trim().min(1, "Message is required").max(2000, "Message must be less than 2000 characters"),
 });
 
 interface ContactSellerFormProps {
@@ -48,14 +48,21 @@ export function ContactSellerForm({ gameId, gameTitle }: ContactSellerFormProps)
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.from("game_messages").insert({
-        game_id: gameId,
-        sender_name: result.data.name,
-        sender_email: result.data.email,
-        message: result.data.message,
+      // Use edge function for rate-limited, validated message sending
+      const { data, error } = await supabase.functions.invoke("send-message", {
+        body: {
+          game_id: gameId,
+          sender_name: result.data.name,
+          sender_email: result.data.email,
+          message: result.data.message,
+        },
       });
 
       if (error) throw error;
+      
+      if (!data?.success) {
+        throw new Error(data?.error || "Failed to send message");
+      }
 
       toast({
         title: "Message sent!",
