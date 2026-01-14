@@ -69,17 +69,22 @@ export function Sidebar({ isOpen }: SidebarProps) {
   const { isAuthenticated, user, signOut, isAdmin } = useAuth();
   const { toast } = useToast();
 
-  // Generate unique player count options from games
-  const playerCountOptions = useMemo(() => {
-    const counts = new Set<number>();
+  // Generate unique player range options from games (e.g., "1-4 Players", "2-6 Players")
+  const playerRangeOptions = useMemo(() => {
+    const ranges = new Map<string, number>(); // range string -> count of games
     games.forEach((game) => {
       const min = game.min_players ?? 1;
       const max = game.max_players ?? min;
-      for (let i = min; i <= Math.min(max, 10); i++) {
-        counts.add(i);
-      }
+      const rangeKey = min === max ? `${min}` : `${min}-${max}`;
+      ranges.set(rangeKey, (ranges.get(rangeKey) || 0) + 1);
     });
-    return Array.from(counts).sort((a, b) => a - b);
+    // Sort by min players, then by max players
+    return Array.from(ranges.keys()).sort((a, b) => {
+      const [aMin, aMax] = a.split('-').map(Number);
+      const [bMin, bMax] = b.split('-').map(Number);
+      if (aMin !== bMin) return aMin - bMin;
+      return (aMax || aMin) - (bMax || bMin);
+    });
   }, [games]);
 
   const handleSignOut = async () => {
@@ -164,16 +169,16 @@ export function Sidebar({ isOpen }: SidebarProps) {
 
           {/* Number of Players */}
           <FilterSection title="Players" icon={<Users className="h-4 w-4" />} defaultOpen={currentFilter === "players"}>
-            {playerCountOptions.map((count) => (
+            {playerRangeOptions.map((range) => (
               <Link
-                key={count}
-                to={createFilterUrl("players", count.toString())}
+                key={range}
+                to={createFilterUrl("players", range)}
                 className={cn(
                   "sidebar-link text-sm",
-                  isActive("players", count.toString()) && "sidebar-link-active"
+                  isActive("players", range) && "sidebar-link-active"
                 )}
               >
-                {count} {count === 1 ? "Player" : "Players"}
+                {range.includes('-') ? `${range} Players` : `${range} ${range === '1' ? 'Player' : 'Players'}`}
               </Link>
             ))}
           </FilterSection>

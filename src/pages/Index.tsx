@@ -54,14 +54,13 @@ const Index = () => {
       if (filter && filterValue) {
         switch (filter) {
           case "players":
-            const playerCount = parseInt(filterValue, 10);
-            if (!isNaN(playerCount)) {
-              result = result.filter((g) => {
-                const min = g.min_players ?? 1;
-                const max = g.max_players ?? min;
-                return min <= playerCount && max >= playerCount;
-              });
-            }
+            // Filter by exact player range match (e.g., "1-4" or "2")
+            result = result.filter((g) => {
+              const min = g.min_players ?? 1;
+              const max = g.max_players ?? min;
+              const gameRange = min === max ? `${min}` : `${min}-${max}`;
+              return gameRange === filterValue;
+            });
             break;
           case "difficulty":
             result = result.filter((g) => g.difficulty === filterValue);
