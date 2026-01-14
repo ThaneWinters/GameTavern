@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { proxiedImageUrl, directImageUrl } from "@/lib/utils";
 
 interface GameImageProps {
@@ -7,14 +7,16 @@ interface GameImageProps {
   className?: string;
   loading?: "lazy" | "eager";
   priority?: boolean;
+  fallback?: ReactNode;
 }
 
-export function GameImage({ 
-  imageUrl, 
-  alt, 
+export function GameImage({
+  imageUrl,
+  alt,
   className = "",
   loading = "lazy",
-  priority = false 
+  priority = false,
+  fallback,
 }: GameImageProps) {
   const [useFallback, setUseFallback] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -33,7 +35,7 @@ export function GameImage({
   };
 
   if (imageError) {
-    return null; // Let parent handle fallback UI
+    return <>{fallback ?? null}</>;
   }
 
   return (
@@ -49,3 +51,4 @@ export function GameImage({
     />
   );
 }
+
