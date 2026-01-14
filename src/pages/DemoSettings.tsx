@@ -307,19 +307,14 @@ const DemoSettings = () => {
       ? demoGames.find(g => g.id === importParentGameId)
       : null;
 
-    // Random placeholder images for variety
-    const placeholderImages = [
-      "https://images.unsplash.com/photo-1632501641765-e568d28b0015?w=400&h=400&fit=crop",
-      "https://images.unsplash.com/photo-1606503153255-59d7742fe52e?w=400&h=400&fit=crop",
-      "https://images.unsplash.com/photo-1611891487122-207579d67d98?w=400&h=400&fit=crop",
-      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop",
-    ];
-    const randomImage = placeholderImages[Math.floor(Math.random() * placeholderImages.length)];
+    // Use picsum with a seed based on the title for consistent images
+    const seed = title.toLowerCase().replace(/\s+/g, "");
+    const placeholderImage = `https://picsum.photos/seed/${seed}/400/400`;
 
     addDemoGame({
       title,
       description: `Imported from ${trimmed}`,
-      image_url: randomImage,
+      image_url: placeholderImage,
       difficulty: "3 - Medium",
       game_type: "Board Game",
       play_time: "45-60 Minutes",

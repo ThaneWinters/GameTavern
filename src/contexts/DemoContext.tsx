@@ -1,13 +1,13 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import { GameWithRelations } from "@/types/game";
 
-// Sample demo games with working placeholder images
+// Stable placeholder images for demo games (using picsum with seed for consistency)
 const DEMO_GAMES: GameWithRelations[] = [
   {
     id: "demo-1",
     title: "Catan",
     description: "Trade, build, and settle the island of Catan in this classic strategy game.",
-    image_url: "https://images.unsplash.com/photo-1632501641765-e568d28b0015?w=400&h=400&fit=crop",
+    image_url: "https://picsum.photos/seed/catan/400/400",
     difficulty: "2 - Medium Light",
     game_type: "Board Game",
     play_time: "60+ Minutes",
@@ -34,7 +34,7 @@ const DEMO_GAMES: GameWithRelations[] = [
     id: "demo-2",
     title: "Ticket to Ride",
     description: "Build train routes across the country and complete destination tickets.",
-    image_url: "https://images.unsplash.com/photo-1606503153255-59d7742fe52e?w=400&h=400&fit=crop",
+    image_url: "https://picsum.photos/seed/tickettoride/400/400",
     difficulty: "1 - Light",
     game_type: "Board Game",
     play_time: "45-60 Minutes",
@@ -61,7 +61,7 @@ const DEMO_GAMES: GameWithRelations[] = [
     id: "demo-3",
     title: "Wingspan",
     description: "Attract birds to your wildlife preserves in this engine-building game.",
-    image_url: "https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=400&h=400&fit=crop",
+    image_url: "https://picsum.photos/seed/wingspan/400/400",
     difficulty: "3 - Medium",
     game_type: "Card Game",
     play_time: "60+ Minutes",
@@ -91,7 +91,7 @@ const DEMO_GAMES: GameWithRelations[] = [
     id: "demo-4",
     title: "Gloomhaven",
     description: "A tactical combat game with a persistent campaign and legacy elements.",
-    image_url: "https://images.unsplash.com/photo-1611891487122-207579d67d98?w=400&h=400&fit=crop",
+    image_url: "https://picsum.photos/seed/gloomhaven/400/400",
     difficulty: "5 - Heavy",
     game_type: "Board Game",
     play_time: "2+ Hours",
@@ -121,7 +121,7 @@ const DEMO_GAMES: GameWithRelations[] = [
     id: "demo-5",
     title: "Azul",
     description: "Tile-laying game where you draft beautiful Portuguese tiles to decorate your palace.",
-    image_url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop",
+    image_url: "https://picsum.photos/seed/azul/400/400",
     difficulty: "2 - Medium Light",
     game_type: "Board Game",
     play_time: "30-45 Minutes",
@@ -151,7 +151,7 @@ const DEMO_GAMES: GameWithRelations[] = [
     id: "demo-6",
     title: "Spirit Island",
     description: "Cooperative game where island spirits defend against colonial invaders.",
-    image_url: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&h=400&fit=crop",
+    image_url: "https://picsum.photos/seed/spiritisland/400/400",
     difficulty: "4 - Medium Heavy",
     game_type: "Board Game",
     play_time: "2+ Hours",
