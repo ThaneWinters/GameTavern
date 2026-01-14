@@ -1,10 +1,12 @@
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ArrowUpDown, X } from "lucide-react";
+import { ArrowUpDown, X, AlertTriangle } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { GameGrid } from "@/components/games/GameGrid";
 import { useGames } from "@/hooks/useGames";
+import { useDemoMode } from "@/contexts/DemoContext";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   Select, 
   SelectContent, 
@@ -30,7 +32,11 @@ const ITEMS_PER_PAGE = 20;
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: games = [], isLoading } = useGames();
+  const { isDemoMode, demoGames } = useDemoMode();
+  const { data: realGames = [], isLoading } = useGames(!isDemoMode);
+  
+  // Use demo games when in demo mode, otherwise use real games
+  const games = isDemoMode ? demoGames : realGames;
 
   const filter = searchParams.get("filter");
   const filterValue = searchParams.get("value");
@@ -171,6 +177,17 @@ const Index = () => {
 
   return (
     <Layout>
+      {/* Demo Mode Banner */}
+      {isDemoMode && (
+        <Alert className="border-amber-500/50 bg-amber-500/10 mb-6">
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <AlertTitle className="text-amber-600 dark:text-amber-400">Demo Mode Active</AlertTitle>
+          <AlertDescription className="text-amber-600/80 dark:text-amber-400/80">
+            You're viewing the demo collection. Changes made in the demo admin panel will appear here.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Page Header */}
       <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

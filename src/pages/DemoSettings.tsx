@@ -13,7 +13,9 @@ import {
   ChevronRight,
   AlertTriangle,
   RotateCcw,
-  Eye
+  Eye,
+  Upload,
+  Loader2
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { useDemoMode } from "@/contexts/DemoContext";
@@ -39,10 +41,21 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { GameWithRelations } from "@/types/game";
+import { SALE_CONDITION_OPTIONS, type SaleCondition } from "@/types/game";
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
@@ -226,11 +239,21 @@ function GameCollectionTable({
 const DemoSettings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isDemoMode, demoGames, deleteDemoGame, resetDemoData } = useDemoMode();
+  const { isDemoMode, demoGames, addDemoGame, deleteDemoGame, resetDemoData } = useDemoMode();
 
   const [gameFilterLetter, setGameFilterLetter] = useState<string | null>(null);
   const [gameCurrentPage, setGameCurrentPage] = useState(1);
   const GAMES_PER_PAGE = 20;
+
+  // Import state
+  const [importUrl, setImportUrl] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
+  const [importAsComingSoon, setImportAsComingSoon] = useState(false);
+  const [importAsForSale, setImportAsForSale] = useState(false);
+  const [importAsExpansion, setImportAsExpansion] = useState(false);
+  const [importParentGameId, setImportParentGameId] = useState<string | null>(null);
+  const [importSalePrice, setImportSalePrice] = useState("");
+  const [importSaleCondition, setImportSaleCondition] = useState<SaleCondition | null>(null);
 
   // Demo mechanics and publishers derived from games
   const mechanics = useMemo(() => {
@@ -248,6 +271,84 @@ const DemoSettings = () => {
     });
     return Array.from(pubMap.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [demoGames]);
+
+  // Filter out expansions from parent game options
+  const parentGameOptions = demoGames.filter(g => !g.is_expansion);
+
+  // Simulate import - creates a demo game with random data
+  const handleImport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = importUrl.trim();
+    if (!trimmed) return;
+
+    setIsImporting(true);
+    
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Extract a title from the URL
+    let title = "Imported Game";
+    try {
+      const url = new URL(trimmed);
+      const pathParts = url.pathname.split("/").filter(Boolean);
+      if (pathParts.length > 0) {
+        title = pathParts[pathParts.length - 1]
+          .replace(/-/g, " ")
+          .replace(/_/g, " ")
+          .split(" ")
+          .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ");
+      }
+    } catch {
+      // Invalid URL, use default title
+    }
+
+    const selectedParent = importAsExpansion && importParentGameId 
+      ? demoGames.find(g => g.id === importParentGameId)
+      : null;
+
+    addDemoGame({
+      title,
+      description: `Imported from ${trimmed}`,
+      image_url: "https://cf.geekdo-images.com/W3Bsga_uLP9kO91gZ7H8yw__imagepage/img/M_3Jx5XpWHgLVzFKqY6Jf0GFvhA=/fit-in/900x600/filters:no_upscale():strip_icc()/pic2419375.jpg",
+      difficulty: "3 - Medium",
+      game_type: "Board Game",
+      play_time: "45-60 Minutes",
+      min_players: 2,
+      max_players: 4,
+      suggested_age: "10+",
+      is_coming_soon: importAsComingSoon,
+      is_for_sale: importAsForSale,
+      sale_price: importAsForSale && importSalePrice ? parseFloat(importSalePrice) : null,
+      sale_condition: importAsForSale ? importSaleCondition : null,
+      is_expansion: importAsExpansion,
+      parent_game_id: importAsExpansion ? importParentGameId : null,
+      bgg_url: trimmed,
+    });
+
+    const statusLabel = importAsExpansion 
+      ? `as an expansion${selectedParent ? ` of "${selectedParent.title}"` : ''}`
+      : importAsComingSoon 
+        ? 'to "Coming Soon" list' 
+        : importAsForSale 
+          ? 'to "For Sale" section' 
+          : 'to collection';
+
+    toast({
+      title: "Game imported! (Demo)",
+      description: `"${title}" has been added ${statusLabel}.`,
+    });
+
+    // Reset form
+    setImportUrl("");
+    setImportAsComingSoon(false);
+    setImportAsForSale(false);
+    setImportAsExpansion(false);
+    setImportParentGameId(null);
+    setImportSalePrice("");
+    setImportSaleCondition(null);
+    setIsImporting(false);
+  };
 
   if (!isDemoMode) {
     return (
@@ -333,32 +434,185 @@ const DemoSettings = () => {
 
           {/* Game Collection Tab */}
           <TabsContent value="collection" className="space-y-6">
-            <Card className="card-elevated">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Game Collection</CardTitle>
+            <div className="grid gap-6 lg:grid-cols-3">
+              {/* Import Card */}
+              <Card className="lg:col-span-1 card-elevated">
+                <CardHeader>
+                  <CardTitle className="font-display flex items-center gap-2">
+                    <Upload className="h-5 w-5" />
+                    Import from Web
+                  </CardTitle>
                   <CardDescription>
-                    {demoGames.length} games in demo collection
+                    Simulate importing a game from any URL (demo mode creates placeholder data)
                   </CardDescription>
-                </div>
-                <Button onClick={() => navigate("/demo/add")}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Game
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <GameCollectionTable
-                  games={demoGames}
-                  filterLetter={gameFilterLetter}
-                  setFilterLetter={setGameFilterLetter}
-                  currentPage={gameCurrentPage}
-                  setCurrentPage={setGameCurrentPage}
-                  gamesPerPage={GAMES_PER_PAGE}
-                  onEdit={(id) => navigate(`/demo/edit/${id}`)}
-                  onDelete={handleDeleteGame}
-                />
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleImport} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="import-url">Game Page URL</Label>
+                      <Input
+                        id="import-url"
+                        type="url"
+                        value={importUrl}
+                        onChange={(e) => setImportUrl(e.target.value)}
+                        placeholder="https://boardgamegeek.com/boardgame/..."
+                        disabled={isImporting}
+                      />
+                    </div>
+                    <div className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-muted/50">
+                      <Checkbox
+                        id="import-coming-soon"
+                        checked={importAsComingSoon}
+                        onCheckedChange={(checked) => setImportAsComingSoon(checked === true)}
+                        disabled={isImporting}
+                      />
+                      <div className="space-y-0.5">
+                        <label htmlFor="import-coming-soon" className="text-sm font-medium cursor-pointer">
+                          Coming Soon
+                        </label>
+                        <p className="text-xs text-muted-foreground">
+                          Mark as purchased/backed but not yet received
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-3 p-3 rounded-lg border border-green-500/30 bg-green-500/10">
+                        <Checkbox
+                          id="import-for-sale"
+                          checked={importAsForSale}
+                          onCheckedChange={(checked) => setImportAsForSale(checked === true)}
+                          disabled={isImporting}
+                        />
+                        <div className="space-y-0.5">
+                          <label htmlFor="import-for-sale" className="text-sm font-medium cursor-pointer text-green-700 dark:text-green-400">
+                            For Sale
+                          </label>
+                          <p className="text-xs text-muted-foreground">
+                            Mark as available for purchase
+                          </p>
+                        </div>
+                      </div>
+                      {importAsForSale && (
+                        <div className="grid gap-3 sm:grid-cols-2 p-3 rounded-lg border border-green-500/20 bg-green-500/5">
+                          <div className="space-y-1">
+                            <Label htmlFor="sale-price" className="text-xs">Price ($)</Label>
+                            <Input
+                              id="sale-price"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={importSalePrice}
+                              onChange={(e) => setImportSalePrice(e.target.value)}
+                              placeholder="0.00"
+                              className="h-8"
+                              disabled={isImporting}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Condition</Label>
+                            <Select
+                              value={importSaleCondition || ""}
+                              onValueChange={(v) => setImportSaleCondition(v as SaleCondition)}
+                              disabled={isImporting}
+                            >
+                              <SelectTrigger className="h-8">
+                                <SelectValue placeholder="Select..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {SALE_CONDITION_OPTIONS.map((c) => (
+                                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-3 p-3 rounded-lg border border-purple-500/30 bg-purple-500/10">
+                        <Checkbox
+                          id="import-expansion"
+                          checked={importAsExpansion}
+                          onCheckedChange={(checked) => {
+                            setImportAsExpansion(checked === true);
+                            if (!checked) setImportParentGameId(null);
+                          }}
+                          disabled={isImporting}
+                        />
+                        <div className="space-y-0.5">
+                          <label htmlFor="import-expansion" className="text-sm font-medium cursor-pointer text-purple-700 dark:text-purple-400">
+                            Expansion
+                          </label>
+                          <p className="text-xs text-muted-foreground">
+                            Mark as an expansion for a base game
+                          </p>
+                        </div>
+                      </div>
+                      {importAsExpansion && (
+                        <div className="p-3 rounded-lg border border-purple-500/20 bg-purple-500/5">
+                          <Label className="text-xs">Parent Game</Label>
+                          <Select
+                            value={importParentGameId || ""}
+                            onValueChange={setImportParentGameId}
+                            disabled={isImporting}
+                          >
+                            <SelectTrigger className="mt-1 h-8">
+                              <SelectValue placeholder="Select base game..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {parentGameOptions.map((g) => (
+                                <SelectItem key={g.id} value={g.id}>{g.title}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isImporting || !importUrl.trim()}>
+                      {isImporting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Importing...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Import Game
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+
+              {/* Game Collection */}
+              <Card className="lg:col-span-2 card-elevated">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Game Collection</CardTitle>
+                    <CardDescription>
+                      {demoGames.length} games in demo collection
+                    </CardDescription>
+                  </div>
+                  <Button onClick={() => navigate("/demo/add")}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Game
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <GameCollectionTable
+                    games={demoGames}
+                    filterLetter={gameFilterLetter}
+                    setFilterLetter={setGameFilterLetter}
+                    currentPage={gameCurrentPage}
+                    setCurrentPage={setGameCurrentPage}
+                    gamesPerPage={GAMES_PER_PAGE}
+                    onEdit={(id) => navigate(`/demo/edit/${id}`)}
+                    onDelete={handleDeleteGame}
+                  />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Mechanics Tab */}
