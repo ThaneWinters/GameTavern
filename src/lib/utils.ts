@@ -6,6 +6,20 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Clean and normalize BGG image URLs.
+ * BGG CDN often has encoded parentheses that need to be normalized.
+ */
+function cleanBggUrl(url: string): string {
+  return url
+    .replace(/%28/g, "(")
+    .replace(/%29/g, ")")
+    .replace(/%2528/g, "(")  // Double-encoded
+    .replace(/%2529/g, ")")
+    .replace(/&quot;.*$/, "") // Remove HTML entities from bad scraping
+    .replace(/;$/, "");       // Remove trailing semicolons
+}
+
+/**
  * Returns an image URL, using proxy for BGG images to bypass hotlink protection.
  * Falls back to direct URL if proxy isn't available.
  * 
@@ -20,16 +34,7 @@ export function proxiedImageUrl(url: string | null | undefined): string | undefi
     
     // Only proxy BGG images
     if (u.hostname === "cf.geekdo-images.com") {
-      // Clean up the URL - normalize encoded parentheses and remove garbage from scraping
-      let normalized = url
-        .replace(/%28/g, "(")
-        .replace(/%29/g, ")")
-        .replace(/%2528/g, "(")  // Double-encoded
-        .replace(/%2529/g, ")")
-        .replace(/&quot;.*$/, "") // Remove HTML entities from bad scraping
-        .replace(/;$/, "");       // Remove trailing semicolons
-      
-      // Try the proxy first, but the component should handle errors gracefully
+      const normalized = cleanBggUrl(url);
       return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/image-proxy?url=${encodeURIComponent(normalized)}`;
     }
     
@@ -46,14 +51,7 @@ export function directImageUrl(url: string | null | undefined): string | undefin
   if (!url) return undefined;
   
   try {
-    // Clean up the URL
-    return url
-      .replace(/%28/g, "(")
-      .replace(/%29/g, ")")
-      .replace(/%2528/g, "(")
-      .replace(/%2529/g, ")")
-      .replace(/&quot;.*$/, "")
-      .replace(/;$/, "");
+    return cleanBggUrl(url);
   } catch {
     return url;
   }

@@ -6,7 +6,7 @@ import remarkGfm from "remark-gfm";
 import { Layout } from "@/components/layout/Layout";
 import { useGame, useGames } from "@/hooks/useGames";
 import { useAuth } from "@/hooks/useAuth";
-import { proxiedImageUrl } from "@/lib/utils";
+import { directImageUrl, proxiedImageUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -226,8 +226,8 @@ const GameDetail = () => {
                     const selectedUrl = allImages[safeIndex];
 
                     return (
-                      <img
-                        src={proxiedImageUrl(selectedUrl)}
+                                      <img
+                                        src={directImageUrl(selectedUrl)}
                         alt={game.title}
                         loading="eager"
                         decoding="async"
@@ -289,8 +289,8 @@ const GameDetail = () => {
                         : "border-border hover:border-primary/50"
                     }`}
                    >
-                      <img
-                        src={proxiedImageUrl(img)}
+                                      <img
+                                        src={directImageUrl(img)}
                         alt={`${game.title} - Image ${idx + 1}`}
                         loading="lazy"
                         decoding="async"

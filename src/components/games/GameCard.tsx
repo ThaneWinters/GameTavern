@@ -22,16 +22,16 @@ export function GameCard({ game, priority = false }: GameCardProps) {
 
   const hasExpansions = game.expansions && game.expansions.length > 0;
 
-  // Get the appropriate image URL - try proxy first, then direct
+  // Get the appropriate image URL - try direct first (browser with no-referrer often works), then proxy
   const getImageSrc = () => {
     if (!game.image_url) return undefined;
-    if (useFallback) return directImageUrl(game.image_url);
-    return proxiedImageUrl(game.image_url);
+    if (useFallback) return proxiedImageUrl(game.image_url);
+    return directImageUrl(game.image_url);
   };
 
   const handleImageError = () => {
     if (!useFallback) {
-      // First try direct URL without proxy
+      // First try the proxy as fallback
       setUseFallback(true);
     } else {
       // Both failed, show placeholder
