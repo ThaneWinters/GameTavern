@@ -13,7 +13,8 @@ import {
   ChevronDown,
   PackageOpen,
   ShoppingCart,
-  ALargeSmall
+  ALargeSmall,
+  Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DIFFICULTY_OPTIONS, GAME_TYPE_OPTIONS, PLAY_TIME_OPTIONS } from "@/types/game";
@@ -145,6 +146,22 @@ export function Sidebar({ isOpen }: SidebarProps) {
               <span>For Sale</span>
             </Link>
           </nav>
+
+          {/* Number of Players */}
+          <FilterSection title="Players" icon={<Users className="h-4 w-4" />} defaultOpen={currentFilter === "players"}>
+            {["1 Player", "2 Players", "3-4 Players", "5-6 Players", "7+ Players"].map((option) => (
+              <Link
+                key={option}
+                to={createFilterUrl("players", option)}
+                className={cn(
+                  "sidebar-link text-sm",
+                  isActive("players", option) && "sidebar-link-active"
+                )}
+              >
+                {option}
+              </Link>
+            ))}
+          </FilterSection>
 
           {/* Difficulty */}
           <FilterSection title="Difficulty" icon={<Star className="h-4 w-4" />} defaultOpen={currentFilter === "difficulty"}>
