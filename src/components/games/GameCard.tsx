@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Users, Clock, DollarSign } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExpansionList } from "./ExpansionList";
 import type { GameWithRelations } from "@/types/game";
-import { cn, proxiedImageUrl } from "@/lib/utils";
+import { cn, proxiedImageUrl, directImageUrl } from "@/lib/utils";
 
 interface GameCardProps {
   game: GameWithRelations;
@@ -12,11 +13,31 @@ interface GameCardProps {
 }
 
 export function GameCard({ game, priority = false }: GameCardProps) {
+  const [imageError, setImageError] = useState(false);
+  const [useFallback, setUseFallback] = useState(false);
+  
   const playerRange = game.min_players === game.max_players
     ? `${game.min_players}`
     : `${game.min_players}-${game.max_players}`;
 
   const hasExpansions = game.expansions && game.expansions.length > 0;
+
+  // Get the appropriate image URL - try proxy first, then direct
+  const getImageSrc = () => {
+    if (!game.image_url) return undefined;
+    if (useFallback) return directImageUrl(game.image_url);
+    return proxiedImageUrl(game.image_url);
+  };
+
+  const handleImageError = () => {
+    if (!useFallback) {
+      // First try direct URL without proxy
+      setUseFallback(true);
+    } else {
+      // Both failed, show placeholder
+      setImageError(true);
+    }
+  };
 
   return (
     <div>
@@ -24,15 +45,16 @@ export function GameCard({ game, priority = false }: GameCardProps) {
         <Card className="group overflow-hidden card-elevated card-hover bg-card border-border">
           {/* Image */}
           <div className="aspect-square overflow-hidden bg-muted">
-            {game.image_url ? (
+            {game.image_url && !imageError ? (
               <>
                 <img
-                  src={proxiedImageUrl(game.image_url)}
+                  src={getImageSrc()}
                   alt={game.title}
                   loading={priority ? "eager" : "lazy"}
                   decoding={priority ? "sync" : "async"}
                   fetchPriority={priority ? "high" : "auto"}
                   referrerPolicy="no-referrer"
+                  onError={handleImageError}
                   className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
                 />
                 <span className="sr-only">{game.title}</span>
