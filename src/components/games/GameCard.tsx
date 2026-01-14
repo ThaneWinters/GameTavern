@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Users, Clock } from "lucide-react";
+import { Users, Clock, DollarSign } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { GameWithRelations } from "@/types/game";
@@ -58,6 +58,12 @@ export function GameCard({ game }: GameCardProps) {
 
           {/* Tags */}
           <div className="flex flex-wrap gap-1.5">
+            {game.is_for_sale && (
+              <Badge className="text-xs bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30">
+                <DollarSign className="h-3 w-3 mr-0.5" />
+                {game.sale_price ? `$${game.sale_price}` : 'For Sale'}
+              </Badge>
+            )}
             {game.is_coming_soon && (
               <Badge className="text-xs bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30">
                 Coming Soon

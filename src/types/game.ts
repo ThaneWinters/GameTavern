@@ -1,6 +1,7 @@
 export type DifficultyLevel = '1 - Light' | '2 - Medium Light' | '3 - Medium' | '4 - Medium Heavy' | '5 - Heavy';
 export type GameType = 'Board Game' | 'Card Game' | 'Dice Game' | 'Party Game' | 'War Game' | 'Miniatures' | 'RPG' | 'Other';
 export type PlayTime = '0-15 Minutes' | '15-30 Minutes' | '30-45 Minutes' | '45-60 Minutes' | '60+ Minutes' | '2+ Hours' | '3+ Hours';
+export type SaleCondition = 'New/Sealed' | 'Like New' | 'Very Good' | 'Good' | 'Acceptable';
 
 export interface Mechanic {
   id: string;
@@ -29,6 +30,9 @@ export interface Game {
   bgg_id: string | null;
   bgg_url: string | null;
   is_coming_soon: boolean;
+  is_for_sale: boolean;
+  sale_price: number | null;
+  sale_condition: SaleCondition | null;
   created_at: string;
   updated_at: string;
 }
@@ -65,4 +69,12 @@ export const PLAY_TIME_OPTIONS: PlayTime[] = [
   '60+ Minutes',
   '2+ Hours',
   '3+ Hours'
+];
+
+export const SALE_CONDITION_OPTIONS: SaleCondition[] = [
+  'New/Sealed',
+  'Like New',
+  'Very Good',
+  'Good',
+  'Acceptable'
 ];

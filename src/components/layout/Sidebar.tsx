@@ -11,7 +11,8 @@ import {
   User,
   Settings,
   ChevronDown,
-  PackageOpen
+  PackageOpen,
+  ShoppingCart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DIFFICULTY_OPTIONS, GAME_TYPE_OPTIONS, PLAY_TIME_OPTIONS } from "@/types/game";
@@ -131,6 +132,16 @@ export function Sidebar({ isOpen }: SidebarProps) {
             >
               <PackageOpen className="h-5 w-5" />
               <span>Coming Soon</span>
+            </Link>
+            <Link
+              to="/?filter=status&value=for-sale"
+              className={cn(
+                "sidebar-link",
+                isActive("status", "for-sale") && "sidebar-link-active"
+              )}
+            >
+              <ShoppingCart className="h-5 w-5" />
+              <span>For Sale</span>
             </Link>
           </nav>
 

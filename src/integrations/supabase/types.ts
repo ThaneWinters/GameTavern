@@ -47,6 +47,44 @@ export type Database = {
           },
         ]
       }
+      game_messages: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: string
+          is_read: boolean
+          message: string
+          sender_email: string
+          sender_name: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: string
+          is_read?: boolean
+          message: string
+          sender_email: string
+          sender_name: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          sender_email?: string
+          sender_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_messages_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           additional_images: string[] | null
@@ -59,10 +97,13 @@ export type Database = {
           id: string
           image_url: string | null
           is_coming_soon: boolean
+          is_for_sale: boolean
           max_players: number | null
           min_players: number | null
           play_time: Database["public"]["Enums"]["play_time"] | null
           publisher_id: string | null
+          sale_condition: Database["public"]["Enums"]["sale_condition"] | null
+          sale_price: number | null
           slug: string | null
           suggested_age: string | null
           title: string
@@ -79,10 +120,13 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_coming_soon?: boolean
+          is_for_sale?: boolean
           max_players?: number | null
           min_players?: number | null
           play_time?: Database["public"]["Enums"]["play_time"] | null
           publisher_id?: string | null
+          sale_condition?: Database["public"]["Enums"]["sale_condition"] | null
+          sale_price?: number | null
           slug?: string | null
           suggested_age?: string | null
           title: string
@@ -99,10 +143,13 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_coming_soon?: boolean
+          is_for_sale?: boolean
           max_players?: number | null
           min_players?: number | null
           play_time?: Database["public"]["Enums"]["play_time"] | null
           publisher_id?: string | null
+          sale_condition?: Database["public"]["Enums"]["sale_condition"] | null
+          sale_price?: number | null
           slug?: string | null
           suggested_age?: string | null
           title?: string
@@ -239,6 +286,12 @@ export type Database = {
         | "60+ Minutes"
         | "2+ Hours"
         | "3+ Hours"
+      sale_condition:
+        | "New/Sealed"
+        | "Like New"
+        | "Very Good"
+        | "Good"
+        | "Acceptable"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -392,6 +445,13 @@ export const Constants = {
         "60+ Minutes",
         "2+ Hours",
         "3+ Hours",
+      ],
+      sale_condition: [
+        "New/Sealed",
+        "Like New",
+        "Very Good",
+        "Good",
+        "Acceptable",
       ],
     },
   },

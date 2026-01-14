@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, ExternalLink, Edit, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ExternalLink, Edit, ChevronLeft, ChevronRight, DollarSign, Tag } from "lucide-react";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import { ContactSellerForm } from "@/components/games/ContactSellerForm";
 import {
   Table,
   TableBody,
@@ -325,6 +326,32 @@ const GameDetail = () => {
               )}
             </div>
 
+            {/* For Sale Banner */}
+            {game.is_for_sale && (
+              <Card className="mb-6 border-green-500/30 bg-green-500/10">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-green-500/20">
+                        <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-green-700 dark:text-green-300">
+                          {game.sale_price ? `$${game.sale_price.toFixed(2)}` : 'For Sale'}
+                        </p>
+                        {game.sale_condition && (
+                          <p className="text-sm text-green-600/80 dark:text-green-400/80 flex items-center gap-1">
+                            <Tag className="h-3 w-3" />
+                            Condition: {game.sale_condition}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Categories as clickable badges */}
             <div className="flex flex-wrap gap-2 mb-6">
               {allCategories.map((cat, idx) => (
@@ -493,6 +520,13 @@ const GameDetail = () => {
                 </Link>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Contact Seller Form - Only show for games that are for sale */}
+        {game.is_for_sale && (
+          <div className="mt-12 max-w-md">
+            <ContactSellerForm gameId={game.id} gameTitle={game.title} />
           </div>
         )}
       </div>

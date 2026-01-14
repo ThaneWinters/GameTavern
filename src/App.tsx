@@ -9,6 +9,7 @@ import GameDetail from "./pages/GameDetail";
 import Login from "./pages/Login";
 import Settings from "./pages/Settings";
 import GameForm from "./pages/GameForm";
+import Messages from "./pages/Messages";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/settings" element={<Settings />} />
             <Route path="/admin/add" element={<GameForm />} />
             <Route path="/admin/edit/:id" element={<GameForm />} />
+            <Route path="/admin/messages" element={<Messages />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

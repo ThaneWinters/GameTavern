@@ -43,6 +43,9 @@ const Index = () => {
     // Special filter for coming soon
     if (filter === "status" && filterValue === "coming-soon") {
       result = result.filter((g) => g.is_coming_soon);
+    } else if (filter === "status" && filterValue === "for-sale") {
+      // Special filter for for-sale games
+      result = result.filter((g) => g.is_for_sale);
     } else {
       // Exclude coming soon games from main catalog
       result = result.filter((g) => !g.is_coming_soon);

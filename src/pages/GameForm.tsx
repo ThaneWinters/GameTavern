@@ -30,9 +30,11 @@ import {
   DIFFICULTY_OPTIONS, 
   GAME_TYPE_OPTIONS, 
   PLAY_TIME_OPTIONS,
+  SALE_CONDITION_OPTIONS,
   type DifficultyLevel,
   type GameType,
-  type PlayTime
+  type PlayTime,
+  type SaleCondition
 } from "@/types/game";
 
 const GameForm = () => {
@@ -64,6 +66,9 @@ const GameForm = () => {
   const [selectedMechanics, setSelectedMechanics] = useState<string[]>([]);
   const [bggUrl, setBggUrl] = useState("");
   const [isComingSoon, setIsComingSoon] = useState(false);
+  const [isForSale, setIsForSale] = useState(false);
+  const [salePrice, setSalePrice] = useState<string>("");
+  const [saleCondition, setSaleCondition] = useState<SaleCondition | null>(null);
   const [newMechanic, setNewMechanic] = useState("");
   const [newPublisher, setNewPublisher] = useState("");
 
@@ -83,6 +88,9 @@ const GameForm = () => {
       setSelectedMechanics(existingGame.mechanics.map((m) => m.id));
       setBggUrl(existingGame.bgg_url || "");
       setIsComingSoon(existingGame.is_coming_soon);
+      setIsForSale(existingGame.is_for_sale);
+      setSalePrice(existingGame.sale_price?.toString() || "");
+      setSaleCondition(existingGame.sale_condition);
     }
   }, [existingGame]);
 
@@ -147,6 +155,9 @@ const GameForm = () => {
       bgg_id: null,
       bgg_url: bggUrl.trim() || null,
       is_coming_soon: isComingSoon,
+      is_for_sale: isForSale,
+      sale_price: isForSale && salePrice ? parseFloat(salePrice) : null,
+      sale_condition: isForSale ? saleCondition : null,
     };
 
     try {
@@ -349,6 +360,59 @@ const GameForm = () => {
                     Mark this game as purchased/backed but not yet received. It won't appear in the main catalog.
                   </p>
                 </div>
+              </div>
+
+              {/* For Sale Toggle */}
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3 p-4 rounded-lg border border-border bg-muted/50">
+                  <Checkbox
+                    id="isForSale"
+                    checked={isForSale}
+                    onCheckedChange={(checked) => setIsForSale(checked === true)}
+                  />
+                  <div className="space-y-1">
+                    <label htmlFor="isForSale" className="text-sm font-medium cursor-pointer">
+                      For Sale
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      Mark this game as available for sale. It will appear in the marketplace section.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Sale Details - Only show when For Sale is checked */}
+                {isForSale && (
+                  <div className="grid gap-4 sm:grid-cols-2 p-4 rounded-lg border border-primary/20 bg-primary/5">
+                    <div className="space-y-2">
+                      <Label htmlFor="salePrice">Price ($)</Label>
+                      <Input
+                        id="salePrice"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={salePrice}
+                        onChange={(e) => setSalePrice(e.target.value)}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Condition</Label>
+                      <Select 
+                        value={saleCondition || ""} 
+                        onValueChange={(v) => setSaleCondition(v as SaleCondition)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select condition" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SALE_CONDITION_OPTIONS.map((c) => (
+                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Mechanics */}

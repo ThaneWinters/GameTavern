@@ -565,6 +565,15 @@ const Settings = () => {
                   <Globe className="h-4 w-4" />
                   Site
                 </TabsTrigger>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/admin/messages")}
+                  className="ml-auto flex items-center gap-2"
+                >
+                  <Mail className="h-4 w-4" />
+                  Messages
+                </Button>
               </>
             )}
           </TabsList>
