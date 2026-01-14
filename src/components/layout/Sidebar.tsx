@@ -28,6 +28,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { siteConfig } from "@/config/site";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -114,7 +115,7 @@ export function Sidebar({ isOpen }: SidebarProps) {
           <Link to="/" className="flex items-center gap-3">
             <Gamepad2 className="h-8 w-8 text-sidebar-primary" />
             <span className="font-display text-xl font-semibold text-sidebar-foreground">
-              Sommerfeld Game Library
+              {siteConfig.name}
             </span>
           </Link>
         </div>

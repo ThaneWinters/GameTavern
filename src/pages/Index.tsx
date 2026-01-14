@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { siteConfig } from "@/config/site";
 import {
   Pagination,
   PaginationContent,
@@ -175,7 +176,7 @@ const Index = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground">
-              {filter && filterValue ? filterValue : "Game Collection"}
+              {filter && filterValue ? filterValue : siteConfig.collectionTitle}
             </h1>
             <p className="text-muted-foreground mt-1">
               {filteredGames.length} {filteredGames.length === 1 ? "game" : "games"} in collection
