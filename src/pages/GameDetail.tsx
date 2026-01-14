@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, ExternalLink, Edit, ChevronLeft, ChevronRight, DollarSign, Tag } from "lucide-react";
+import { ArrowLeft, ExternalLink, Edit, ChevronLeft, ChevronRight, DollarSign, Tag, Package } from "lucide-react";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -136,9 +136,12 @@ const GameDetail = () => {
     game.publisher && { label: game.publisher.name, type: "publisher" },
   ].filter(Boolean) as { label: string; type: string }[];
 
-  // Get related games (same type or mechanics, excluding current game)
+  // Get expansions for this game
+  const expansions = game.expansions || [];
+
+  // Get related games (same type or mechanics, excluding current game and its expansions)
   const relatedGames = allGames
-    ?.filter((g) => g.id !== game.id)
+    ?.filter((g) => g.id !== game.id && !g.is_expansion)
     .filter((g) => {
       const sameMechanic = g.mechanics?.some((m) =>
         game.mechanics.some((gm) => gm.id === m.id)
@@ -478,6 +481,58 @@ const GameDetail = () => {
             </Tabs>
           </div>
         </div>
+
+        {/* Expansions Section */}
+        {expansions.length > 0 && (
+          <div className="mt-16">
+            <div className="flex items-center gap-2 mb-6">
+              <Package className="h-6 w-6 text-primary" />
+              <h2 className="font-display text-2xl font-semibold text-foreground">
+                Expansions ({expansions.length})
+              </h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {expansions.map((expansion) => (
+                <Link
+                  key={expansion.id}
+                  to={`/game/${expansion.slug || expansion.id}`}
+                  className="group"
+                >
+                  <Card className="overflow-hidden hover:shadow-lg transition-shadow border-primary/20">
+                    <CardContent className="p-0">
+                      <div className="aspect-square overflow-hidden relative">
+                        {expansion.image_url ? (
+                          <img
+                            src={proxiedImageUrl(expansion.image_url)}
+                            alt={expansion.title}
+                            loading="lazy"
+                            decoding="async"
+                            referrerPolicy="no-referrer"
+                            className="h-full w-full object-contain bg-muted group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center bg-muted">
+                            <Package className="h-8 w-8 text-muted-foreground" />
+                          </div>
+                        )}
+                        {expansion.is_for_sale && (
+                          <Badge className="absolute top-2 right-2 text-xs bg-green-500/90 text-white border-0">
+                            ${expansion.sale_price}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="p-3">
+                        <h3 className="font-medium text-sm text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                          {expansion.title}
+                        </h3>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Related Games Section */}
         {relatedGames && relatedGames.length > 0 && (
