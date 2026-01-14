@@ -70,6 +70,11 @@ const Index = () => {
           case "publisher":
             result = result.filter((g) => g.publisher?.name === filterValue);
             break;
+          case "letter":
+            result = result.filter((g) => 
+              g.title.toUpperCase().startsWith(filterValue.toUpperCase())
+            );
+            break;
         }
       }
     }

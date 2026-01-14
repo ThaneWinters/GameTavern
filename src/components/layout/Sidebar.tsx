@@ -12,7 +12,8 @@ import {
   Settings,
   ChevronDown,
   PackageOpen,
-  ShoppingCart
+  ShoppingCart,
+  ALargeSmall
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DIFFICULTY_OPTIONS, GAME_TYPE_OPTIONS, PLAY_TIME_OPTIONS } from "@/types/game";
@@ -223,6 +224,27 @@ export function Sidebar({ isOpen }: SidebarProps) {
                 {pub.name}
               </Link>
             ))}
+          </FilterSection>
+
+          {/* A-Z Filter */}
+          <FilterSection title="A-Z" icon={<ALargeSmall className="h-4 w-4" />} defaultOpen={currentFilter === "letter"}>
+            <div className="grid grid-cols-6 gap-1 px-2">
+              {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter) => (
+                <Link
+                  key={letter}
+                  to={createFilterUrl("letter", letter)}
+                  className={cn(
+                    "flex items-center justify-center h-8 w-8 rounded text-sm font-medium transition-colors",
+                    "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    isActive("letter", letter) 
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+                      : "text-sidebar-foreground/70"
+                  )}
+                >
+                  {letter}
+                </Link>
+              ))}
+            </div>
           </FilterSection>
         </ScrollArea>
 
