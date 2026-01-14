@@ -5,65 +5,34 @@ const corsHeaders = {
 
 const ALLOWED_HOSTS = new Set(["cf.geekdo-images.com"]);
 
-function browserLikeHeaders(targetUrl: string) {
-  // BGG CDN requires specific headers to allow access
+function browserLikeHeaders() {
   return {
     "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
     "Accept-Encoding": "gzip, deflate, br",
     "Accept-Language": "en-US,en;q=0.9",
-    "Cache-Control": "no-cache",
-    "Pragma": "no-cache",
     "User-Agent":
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    // BGG requires their domain as referrer
     "Referer": "https://boardgamegeek.com/",
-    "Origin": "https://boardgamegeek.com",
-    "Host": "cf.geekdo-images.com",
-    "Sec-Ch-Ua": '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
-    "Sec-Ch-Ua-Mobile": "?0",
-    "Sec-Ch-Ua-Platform": '"Windows"',
     "Sec-Fetch-Dest": "image",
     "Sec-Fetch-Mode": "no-cors",
     "Sec-Fetch-Site": "cross-site",
-    "Connection": "keep-alive",
   } as Record<string, string>;
 }
 
-// Try to convert itemrep URLs to original size which may have different CDN rules
-function tryAlternativeUrl(url: string): string[] {
-  const alternatives = [url];
-  
-  // Try converting __itemrep to __original (full size, less restricted)
-  if (url.includes("__itemrep")) {
-    alternatives.push(url.replace("__itemrep", "__original"));
-  }
-  
-  // Try converting to thumb which is typically more available
-  if (url.includes("__itemrep")) {
-    alternatives.push(url.replace("__itemrep", "__thumb"));
-  }
-  
-  // Try the imagepage format (square crop)
-  if (url.includes("__itemrep")) {
-    alternatives.push(url.replace(/__itemrep.*?\//, "__imagepage/"));
-  }
-  
-  return alternatives;
-}
-
-async function fetchWithRetry(url: string, headers: Record<string, string>): Promise<Response | null> {
+async function fetchImage(url: string): Promise<Response | null> {
   try {
     const response = await fetch(url, {
       method: "GET",
-      headers,
+      headers: browserLikeHeaders(),
       redirect: "follow",
     });
     
     if (response.ok && response.body) {
       return response;
     }
-  } catch {
-    // Ignore and try next
+    console.log(`image-proxy: fetch failed for ${url} with status ${response.status}`);
+  } catch (e) {
+    console.log(`image-proxy: fetch error for ${url}:`, e);
   }
   return null;
 }
@@ -92,13 +61,10 @@ Deno.serve(async (req) => {
     let normalizedTarget = target
       .replace(/%28/gi, "(")
       .replace(/%29/gi, ")")
-      .replace(/%2528/gi, "(")  // Double-encoded
-      .replace(/%2529/gi, ")");
-    
-    // Clean up any HTML entities that might have been scraped incorrectly
-    normalizedTarget = normalizedTarget
-      .replace(/&quot;.*$/, "")  // Remove &quot; and anything after
-      .replace(/;$/, "");        // Remove trailing semicolons
+      .replace(/%2528/gi, "(")
+      .replace(/%2529/gi, ")")
+      .replace(/&quot;.*$/, "")
+      .replace(/;$/, "");
 
     let targetUrl: URL;
     try {
@@ -115,27 +81,26 @@ Deno.serve(async (req) => {
       return new Response("Host not allowed", { status: 403, headers: corsHeaders });
     }
 
-    const headers = browserLikeHeaders(normalizedTarget);
-    const urlsToTry = tryAlternativeUrl(normalizedTarget);
-    
-    let successResponse: Response | null = null;
-    
-    for (const tryUrl of urlsToTry) {
-      successResponse = await fetchWithRetry(tryUrl, headers);
-      if (successResponse) {
-        break;
-      }
-    }
+    // Try fetching the image
+    const successResponse = await fetchImage(normalizedTarget);
 
     if (!successResponse) {
-      console.error("image-proxy: all URLs failed for", normalizedTarget);
-      // Return a transparent placeholder or redirect to a fallback
-      return new Response(null, {
-        status: 302,
+      console.error("image-proxy: failed to fetch", normalizedTarget);
+      // Return a 1x1 transparent PNG instead of redirecting (which doesn't work due to CORS)
+      const transparentPng = new Uint8Array([
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+        0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+        0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89, 0x00, 0x00, 0x00,
+        0x0a, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0x00, 0x01, 0x00, 0x00,
+        0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00, 0x00, 0x00, 0x00, 0x49,
+        0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82
+      ]);
+      return new Response(transparentPng, {
+        status: 200,
         headers: {
           ...corsHeaders,
-          // Redirect to the original URL - browser might have better luck
-          "Location": normalizedTarget,
+          "Content-Type": "image/png",
+          "Cache-Control": "public, max-age=60",
         },
       });
     }
@@ -147,7 +112,6 @@ Deno.serve(async (req) => {
       headers: {
         ...corsHeaders,
         "Content-Type": contentType,
-        // Cache aggressively; images are immutable by URL (1 year)
         "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable",
       },
     });
