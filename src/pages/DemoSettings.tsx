@@ -307,10 +307,19 @@ const DemoSettings = () => {
       ? demoGames.find(g => g.id === importParentGameId)
       : null;
 
+    // Random placeholder images for variety
+    const placeholderImages = [
+      "https://images.unsplash.com/photo-1632501641765-e568d28b0015?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1606503153255-59d7742fe52e?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1611891487122-207579d67d98?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop",
+    ];
+    const randomImage = placeholderImages[Math.floor(Math.random() * placeholderImages.length)];
+
     addDemoGame({
       title,
       description: `Imported from ${trimmed}`,
-      image_url: "https://cf.geekdo-images.com/W3Bsga_uLP9kO91gZ7H8yw__imagepage/img/M_3Jx5XpWHgLVzFKqY6Jf0GFvhA=/fit-in/900x600/filters:no_upscale():strip_icc()/pic2419375.jpg",
+      image_url: randomImage,
       difficulty: "3 - Medium",
       game_type: "Board Game",
       play_time: "45-60 Minutes",

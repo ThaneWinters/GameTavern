@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Link, useLocation, useSearchParams, useNavigate } from "react-router-dom";
 import { 
   Library, 
@@ -14,11 +15,13 @@ import {
   PackageOpen,
   ShoppingCart,
   ALargeSmall,
-  Users
+  Users,
+  FlaskConical
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DIFFICULTY_OPTIONS, GAME_TYPE_OPTIONS, PLAY_TIME_OPTIONS } from "@/types/game";
 import { useMechanics, usePublishers } from "@/hooks/useGames";
+import { useDemoMode } from "@/contexts/DemoContext";
 import { useAuth } from "@/hooks/useAuth";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -65,11 +68,31 @@ export function Sidebar({ isOpen }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: mechanics = [] } = useMechanics();
-  const { data: publishers = [] } = usePublishers();
+  const { data: dbMechanics = [] } = useMechanics();
+  const { data: dbPublishers = [] } = usePublishers();
+  const { isDemoMode, demoGames } = useDemoMode();
   const { isAuthenticated, user, signOut, isAdmin } = useAuth();
   const { data: settings } = useSiteSettings();
   const { toast } = useToast();
+
+  // Use demo data for mechanics/publishers when in demo mode
+  const mechanics = useMemo(() => {
+    if (!isDemoMode) return dbMechanics;
+    const mechMap = new Map<string, { id: string; name: string }>();
+    demoGames.forEach(g => {
+      g.mechanics.forEach(m => mechMap.set(m.id, m));
+    });
+    return Array.from(mechMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [isDemoMode, dbMechanics, demoGames]);
+
+  const publishers = useMemo(() => {
+    if (!isDemoMode) return dbPublishers;
+    const pubMap = new Map<string, { id: string; name: string }>();
+    demoGames.forEach(g => {
+      if (g.publisher) pubMap.set(g.publisher.id, g.publisher);
+    });
+    return Array.from(pubMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [isDemoMode, dbPublishers, demoGames]);
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -307,13 +330,23 @@ export function Sidebar({ isOpen }: SidebarProps) {
           </div>
         )}
 
-        {/* Hidden demo link */}
-        <Link 
-          to="/demo/settings" 
-          className="block px-4 py-2 text-[10px] text-sidebar-foreground/20 hover:text-sidebar-foreground/50 transition-colors"
-        >
-          Try Demo
-        </Link>
+        {/* Demo mode admin link or hidden demo link */}
+        {isDemoMode ? (
+          <Link 
+            to="/demo/settings" 
+            className="flex items-center gap-2 px-4 py-3 text-sm bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors border-t border-amber-500/20"
+          >
+            <FlaskConical className="h-4 w-4" />
+            <span>Demo Admin Panel</span>
+          </Link>
+        ) : (
+          <Link 
+            to="/demo/settings" 
+            className="block px-4 py-2 text-[10px] text-sidebar-foreground/20 hover:text-sidebar-foreground/50 transition-colors"
+          >
+            Try Demo
+          </Link>
+        )}
       </div>
     </aside>
   );
