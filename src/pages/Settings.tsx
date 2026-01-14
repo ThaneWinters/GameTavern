@@ -15,7 +15,8 @@ import {
   Lock,
   Users,
   Tag,
-  Building
+  Building,
+  Globe
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/useAuth";
@@ -97,12 +98,77 @@ const Settings = () => {
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [updatingRoleUserId, setUpdatingRoleUserId] = useState<string | null>(null);
 
-  // Fetch users when admin
+  // Site settings states
+  const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
+  const [isLoadingSiteSettings, setIsLoadingSiteSettings] = useState(false);
+  const [isSavingSiteSettings, setIsSavingSiteSettings] = useState(false);
+
+  // Fetch users and site settings when admin
   useEffect(() => {
     if (isAdmin) {
       fetchUsers();
+      fetchSiteSettings();
     }
   }, [isAdmin]);
+
+  const fetchSiteSettings = async () => {
+    setIsLoadingSiteSettings(true);
+    try {
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("key, value");
+      
+      if (error) throw error;
+      
+      const settingsMap: Record<string, string> = {};
+      data?.forEach((setting) => {
+        settingsMap[setting.key] = setting.value || "";
+      });
+      setSiteSettings(settingsMap);
+    } catch (error) {
+      console.error("Error fetching site settings:", error);
+      toast({
+        title: "Error",
+        description: "Could not fetch site settings",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingSiteSettings(false);
+    }
+  };
+
+  const handleSaveSiteSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingSiteSettings(true);
+    try {
+      // Update each setting
+      for (const [key, value] of Object.entries(siteSettings)) {
+        const { error } = await supabase
+          .from("site_settings")
+          .update({ value })
+          .eq("key", key);
+        
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Settings saved",
+        description: "Site settings have been updated successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Could not save site settings",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingSiteSettings(false);
+    }
+  };
+
+  const updateSiteSetting = (key: string, value: string) => {
+    setSiteSettings(prev => ({ ...prev, [key]: value }));
+  };
 
   const fetchUsers = async () => {
     setIsLoadingUsers(true);
@@ -473,7 +539,7 @@ const Settings = () => {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className={`grid w-full ${isAdmin ? "grid-cols-4" : "grid-cols-1"}`}>
+          <TabsList className={`grid w-full ${isAdmin ? "grid-cols-5" : "grid-cols-1"}`}>
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="h-4 w-4" />
               Profile
@@ -491,6 +557,10 @@ const Settings = () => {
                 <TabsTrigger value="users" className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   Users
+                </TabsTrigger>
+                <TabsTrigger value="site" className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  Site
                 </TabsTrigger>
               </>
             )}
@@ -1051,6 +1121,145 @@ const Settings = () => {
                       </TableBody>
                     </Table>
                   )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {/* Site Settings Tab (Admin Only) */}
+          {isAdmin && (
+            <TabsContent value="site" className="space-y-6">
+              <Card className="card-elevated">
+                <CardHeader>
+                  <CardTitle className="font-display flex items-center gap-2">
+                    <Globe className="h-5 w-5" />
+                    Site Settings
+                  </CardTitle>
+                  <CardDescription>
+                    Manage your site's name, description, and other metadata
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingSiteSettings ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    <form onSubmit={handleSaveSiteSettings} className="space-y-6">
+                      <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="site_name">Site Name</Label>
+                          <Input
+                            id="site_name"
+                            value={siteSettings.site_name || ""}
+                            onChange={(e) => updateSiteSetting("site_name", e.target.value)}
+                            placeholder="My Game Library"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            The main title of your site, shown in browser tabs and search results
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="site_author">Site Author</Label>
+                          <Input
+                            id="site_author"
+                            value={siteSettings.site_author || ""}
+                            onChange={(e) => updateSiteSetting("site_author", e.target.value)}
+                            placeholder="Your Name or Organization"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Author/organization name for meta tags
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="site_description">Site Description</Label>
+                        <Input
+                          id="site_description"
+                          value={siteSettings.site_description || ""}
+                          onChange={(e) => updateSiteSetting("site_description", e.target.value)}
+                          placeholder="Browse and discover our collection of board games..."
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          A brief description shown in search results and social media previews (recommended: under 160 characters)
+                        </p>
+                      </div>
+
+                      <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="twitter_handle">Twitter/X Handle</Label>
+                          <Input
+                            id="twitter_handle"
+                            value={siteSettings.twitter_handle || ""}
+                            onChange={(e) => updateSiteSetting("twitter_handle", e.target.value)}
+                            placeholder="@YourHandle"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Your Twitter/X handle for social cards
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="contact_email">Contact Email</Label>
+                          <Input
+                            id="contact_email"
+                            type="email"
+                            value={siteSettings.contact_email || ""}
+                            onChange={(e) => updateSiteSetting("contact_email", e.target.value)}
+                            placeholder="contact@example.com"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Public contact email for inquiries
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="footer_text">Footer Text</Label>
+                        <Input
+                          id="footer_text"
+                          value={siteSettings.footer_text || ""}
+                          onChange={(e) => updateSiteSetting("footer_text", e.target.value)}
+                          placeholder="© 2024 Your Organization. All rights reserved."
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Custom text to display in the site footer
+                        </p>
+                      </div>
+
+                      <Button type="submit" disabled={isSavingSiteSettings}>
+                        {isSavingSiteSettings ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          "Save Settings"
+                        )}
+                      </Button>
+                    </form>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="card-elevated">
+                <CardHeader>
+                  <CardTitle className="font-display">About Site Metadata</CardTitle>
+                  <CardDescription>
+                    How these settings affect your site
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground space-y-2">
+                  <p>
+                    <strong>Note:</strong> These settings are stored in the database and can be used throughout your application. 
+                    However, the HTML meta tags in the page head are static and need to be manually updated in the code 
+                    for changes to appear in search engines and social media previews.
+                  </p>
+                  <p>
+                    For immediate SEO/social sharing changes, contact your developer to update the index.html file.
+                  </p>
                 </CardContent>
               </Card>
             </TabsContent>
