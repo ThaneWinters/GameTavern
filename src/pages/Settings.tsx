@@ -22,6 +22,7 @@ import {
 import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/useAuth";
 import { useGames, useDeleteGame, useMechanics, usePublishers, useCreateMechanic, useCreatePublisher } from "@/hooks/useGames";
+import { useUnreadMessageCount } from "@/hooks/useMessages";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -79,6 +80,7 @@ const Settings = () => {
   const { data: publishers = [], isLoading: publishersLoading, refetch: refetchPublishers } = usePublishers();
   const createMechanic = useCreateMechanic();
   const createPublisher = useCreatePublisher();
+  const { data: unreadCount = 0 } = useUnreadMessageCount();
 
   const [importUrl, setImportUrl] = useState("");
   const [isImporting, setIsImporting] = useState(false);
@@ -549,10 +551,18 @@ const Settings = () => {
             <Button
               variant="outline"
               onClick={() => navigate("/admin/messages")}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 relative"
             >
               <Mail className="h-4 w-4" />
               Messages
+              {unreadCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-2 -right-2 h-5 min-w-5 flex items-center justify-center p-0 text-xs"
+                >
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </Badge>
+              )}
             </Button>
           )}
         </div>
