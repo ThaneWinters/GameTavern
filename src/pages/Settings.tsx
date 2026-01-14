@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, Navigate, Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
   User, 
@@ -536,7 +536,7 @@ const Settings = () => {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
+          <Button variant="ghost" size="sm" type="button" onClick={() => navigate("/")}> 
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Library
           </Button>
@@ -548,21 +548,19 @@ const Settings = () => {
             <h1 className="font-display text-3xl font-bold">Settings</h1>
           </div>
           {isAdmin && (
-            <Button
-              variant="outline"
-              onClick={() => navigate("/admin/messages")}
-              className="flex items-center gap-2 relative"
-            >
-              <Mail className="h-4 w-4" />
-              Messages
-              {unreadCount > 0 && (
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -top-2 -right-2 h-5 min-w-5 flex items-center justify-center p-0 text-xs"
-                >
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </Badge>
-              )}
+            <Button asChild variant="outline" className="flex items-center gap-2 relative">
+              <Link to="/admin/messages">
+                <Mail className="h-4 w-4" />
+                Messages
+                {unreadCount > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="absolute -top-2 -right-2 h-5 min-w-5 flex items-center justify-center p-0 text-xs"
+                  >
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </Badge>
+                )}
+              </Link>
             </Button>
           )}
         </div>
