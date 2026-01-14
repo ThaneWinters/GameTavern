@@ -28,7 +28,7 @@ export function GameGrid({ games }: GameGridProps) {
           className="animate-fade-in"
           style={{ animationDelay: `${index * 50}ms` }}
         >
-          <GameCard game={game} />
+          <GameCard game={game} priority={index < 5} />
         </div>
       ))}
     </div>

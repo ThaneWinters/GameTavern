@@ -7,9 +7,10 @@ import { cn, proxiedImageUrl } from "@/lib/utils";
 
 interface GameCardProps {
   game: GameWithRelations;
+  priority?: boolean;
 }
 
-export function GameCard({ game }: GameCardProps) {
+export function GameCard({ game, priority = false }: GameCardProps) {
   const playerRange = game.min_players === game.max_players
     ? `${game.min_players}`
     : `${game.min_players}-${game.max_players}`;
@@ -21,11 +22,12 @@ export function GameCard({ game }: GameCardProps) {
         <div className="aspect-square overflow-hidden bg-muted">
           {game.image_url ? (
             <>
-              <img
+            <img
                 src={proxiedImageUrl(game.image_url)}
                 alt={game.title}
-                loading="lazy"
-                decoding="async"
+                loading={priority ? "eager" : "lazy"}
+                decoding={priority ? "sync" : "async"}
+                fetchPriority={priority ? "high" : "auto"}
                 referrerPolicy="no-referrer"
                 className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
               />
