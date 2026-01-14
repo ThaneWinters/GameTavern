@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { ArrowLeft, Mail, MailOpen, Trash2, ExternalLink, Loader2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,10 +31,9 @@ const Messages = () => {
   const { toast } = useToast();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Redirect if not authenticated or not admin
+  // Redirect if not authenticated or not admin - use Navigate component
   if (!authLoading && (!isAuthenticated || !isAdmin)) {
-    navigate("/admin");
-    return null;
+    return <Navigate to="/admin" replace />;
   }
 
   const handleMarkRead = async (id: string) => {
