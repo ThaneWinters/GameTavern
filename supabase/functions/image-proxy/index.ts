@@ -6,14 +6,18 @@ const corsHeaders = {
 const ALLOWED_HOSTS = new Set(["cf.geekdo-images.com"]);
 
 function browserLikeHeaders() {
-  // Keep this minimal; some CDNs reject overly-specific browser headers.
+  // BGG requires specific headers; sometimes changing them helps avoid 400s
   return {
     "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-    "Accept-Encoding": "identity",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Accept-Language": "en-US,en;q=0.9",
     "User-Agent":
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
     "Referer": "https://boardgamegeek.com/",
     "Origin": "https://boardgamegeek.com",
+    "Sec-Fetch-Dest": "image",
+    "Sec-Fetch-Mode": "no-cors",
+    "Sec-Fetch-Site": "cross-site",
   } as Record<string, string>;
 }
 
@@ -55,19 +59,17 @@ Deno.serve(async (req) => {
       return new Response("Missing url", { status: 400, headers: corsHeaders });
     }
 
-    // Normalize problematic encoding and ensure parentheses are URL-encoded.
-    // Geekdo/CDN URLs frequently include parentheses in "filters:" segments; unencoded parentheses
-    // can trigger 400s in server-side fetch environments.
+    // Normalize problematic encoding - BGG CDN expects literal (unencoded) parentheses
+    // but URL encoding through proxies often encodes them to %28/%29 which BGG rejects.
     let normalizedTarget = target
-      // Fix double-encoding first
-      .replace(/%2528/gi, "%28")
-      .replace(/%2529/gi, "%29")
       // Strip bad scraping artifacts
       .replace(/&quot;.*$/, "")
       .replace(/;$/, "")
-      // Ensure any literal parentheses are encoded
-      .replace(/\(/g, "%28")
-      .replace(/\)/g, "%29");
+      // Decode any encoded parentheses - BGG wants literal ( and )
+      .replace(/%2528/gi, "(")
+      .replace(/%2529/gi, ")")
+      .replace(/%28/gi, "(")
+      .replace(/%29/gi, ")");
 
     let targetUrl: URL;
     try {

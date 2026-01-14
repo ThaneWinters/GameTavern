@@ -52,7 +52,7 @@ function pickBestGeekdoImage(html: string): string | null {
   const all = html.match(imageRegex) || [];
   const unique = [...new Set(all)];
 
-  const filtered = unique.filter((img) => !/crop100|square30|100x100|150x150|_thumb|_avatar|_micro/i.test(img));
+  const filtered = unique.filter((img) => !/crop100|square30|100x100|150x150|_thumb|_avatar|_micro|opengraph/i.test(img));
 
   filtered.sort((a, b) => {
     const prio = (url: string) => {
@@ -65,6 +65,79 @@ function pickBestGeekdoImage(html: string): string | null {
   });
 
   return filtered[0] ?? null;
+}
+
+// Extract game info from BGG HTML page (used when XML API is blocked)
+function extractGameInfoFromHtml(html: string): {
+  minPlayers: number | null;
+  maxPlayers: number | null;
+  playingTimeMinutes: number | null;
+  suggestedAge: string | null;
+} {
+  let minPlayers: number | null = null;
+  let maxPlayers: number | null = null;
+  let playingTimeMinutes: number | null = null;
+  let suggestedAge: string | null = null;
+
+  // Try multiple patterns for player count
+  // Pattern 1: "2-4 Players" or "2–4 Players"
+  // Pattern 2: JSON-LD structured data: "minplayers": 2
+  // Pattern 3: Data attributes or spans with player info
+  const playerPatterns = [
+    /(\d+)\s*[-–—]\s*(\d+)\s*Players?/i,
+    /"minplayers"[:\s]*(\d+)[^}]*"maxplayers"[:\s]*(\d+)/is,
+    /Players?[:\s]*(\d+)\s*[-–—]\s*(\d+)/i,
+    /(\d+)\s*to\s*(\d+)\s*Players?/i,
+  ];
+
+  for (const pattern of playerPatterns) {
+    const match = html.match(pattern);
+    if (match && match[1] && match[2]) {
+      minPlayers = parseInt(match[1], 10);
+      maxPlayers = parseInt(match[2], 10);
+      if (minPlayers > 0 && maxPlayers >= minPlayers) break;
+    }
+  }
+
+  // Try multiple patterns for playing time
+  const timePatterns = [
+    /(\d+)\s*[-–—]\s*(\d+)\s*Min(?:utes?)?/i,
+    /"playingtime"[:\s]*(\d+)/i,
+    /Playing\s*Time[:\s]*(\d+)\s*[-–—]?\s*(\d+)?\s*Min/i,
+    /(\d+)\s*Min(?:utes?)?\s*[-–—]\s*(\d+)\s*Min/i,
+  ];
+
+  for (const pattern of timePatterns) {
+    const match = html.match(pattern);
+    if (match && match[1]) {
+      const time1 = parseInt(match[1], 10);
+      const time2 = match[2] ? parseInt(match[2], 10) : null;
+      if (time1 > 0) {
+        playingTimeMinutes = time2 ? Math.round((time1 + time2) / 2) : time1;
+        break;
+      }
+    }
+  }
+
+  // Try multiple patterns for age
+  const agePatterns = [
+    /(?:Age|Min(?:imum)?\s*Age)[:\s]*(\d+)\+?/i,
+    /"minage"[:\s]*(\d+)/i,
+    /(\d+)\s*(?:and up|years?\s*(?:and\s*)?(?:up|older|\+))/i,
+  ];
+
+  for (const pattern of agePatterns) {
+    const match = html.match(pattern);
+    if (match && match[1]) {
+      const age = parseInt(match[1], 10);
+      if (age > 0 && age < 100) {
+        suggestedAge = `${age}+`;
+        break;
+      }
+    }
+  }
+
+  return { minPlayers, maxPlayers, playingTimeMinutes, suggestedAge };
 }
 
 Deno.serve(async (req) => {
@@ -153,7 +226,8 @@ Deno.serve(async (req) => {
             body: JSON.stringify({
               url: pageUrl,
               formats: ["rawHtml"],
-              onlyMainContent: true,
+              onlyMainContent: false,
+              waitFor: 3000, // Wait 3s for JS to render player/time info
             }),
           });
 
@@ -167,9 +241,12 @@ Deno.serve(async (req) => {
               null;
 
             const imageUrl =
+              pickBestGeekdoImage(rawHtml) ||
               extractMetaContent(rawHtml, "og:image") ||
-              extractMetaContent(rawHtml, "twitter:image") ||
-              pickBestGeekdoImage(rawHtml);
+              extractMetaContent(rawHtml, "twitter:image");
+
+            // Extract additional info from HTML
+            const gameInfo = extractGameInfoFromHtml(rawHtml);
 
             const resp: BggLookupResponse = {
               success: true,
@@ -177,10 +254,10 @@ Deno.serve(async (req) => {
                 bgg_id: bggId,
                 title,
                 image_url: imageUrl,
-                min_players: null,
-                max_players: null,
-                suggested_age: null,
-                playing_time_minutes: null,
+                min_players: gameInfo.minPlayers,
+                max_players: gameInfo.maxPlayers,
+                suggested_age: gameInfo.suggestedAge,
+                playing_time_minutes: gameInfo.playingTimeMinutes,
               },
             };
 
