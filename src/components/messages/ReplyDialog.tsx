@@ -44,6 +44,18 @@ export function ReplyDialog({
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
 
+  // Escape HTML to prevent XSS in emails
+  const escapeHtml = (text: string): string => {
+    const htmlEscapes: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    };
+    return text.replace(/[&<>"']/g, (char) => htmlEscapes[char]);
+  };
+
   // Process template variables
   const processTemplate = (template: string) => {
     return template
@@ -77,14 +89,14 @@ export function ReplyDialog({
     try {
       // Process any remaining variables in the message
       const processedMessage = processTemplate(message);
+      // Escape HTML to prevent XSS, then convert newlines to <br>
+      const safeHtml = escapeHtml(processedMessage).replace(/\n/g, "<br>");
       
       const { data, error } = await supabase.functions.invoke("send-email", {
         body: {
           to: recipientEmail,
           subject: subject,
-          html: `<div style="font-family: sans-serif; line-height: 1.6;">
-            ${processedMessage.replace(/\n/g, "<br>")}
-          </div>`,
+          html: `<div style="font-family: sans-serif; line-height: 1.6;">${safeHtml}</div>`,
           text: processedMessage,
         },
       });

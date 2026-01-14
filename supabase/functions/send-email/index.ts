@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
@@ -20,6 +21,59 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
+    // ============================================
+    // Authentication & Authorization Check
+    // ============================================
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Verify the JWT token
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getUser(token);
+
+    if (claimsError || !claimsData?.user) {
+      console.error("Auth error:", claimsError);
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid authentication" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claimsData.user.id;
+
+    // Check admin role using service role key
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: roleData, error: roleError } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (roleError || !roleData) {
+      console.error("Role check failed:", roleError);
+      return new Response(
+        JSON.stringify({ success: false, error: "Admin access required" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ============================================
+    // SMTP Configuration
+    // ============================================
     const smtpHost = Deno.env.get("SMTP_HOST");
     const smtpPort = parseInt(Deno.env.get("SMTP_PORT") || "587", 10);
     const smtpUser = Deno.env.get("SMTP_USER");
@@ -69,7 +123,7 @@ serve(async (req: Request): Promise<Response> => {
 
     await client.close();
 
-    console.log(`Email sent to ${to}: ${subject}`);
+    console.log(`Email sent to ${to}: ${subject} (by admin ${userId})`);
 
     return new Response(
       JSON.stringify({ success: true, message: "Email sent successfully" }),
