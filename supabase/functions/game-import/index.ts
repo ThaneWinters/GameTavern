@@ -120,8 +120,9 @@ Deno.serve(async (req) => {
     // Step 1: Use Firecrawl to scrape the page
     const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
     if (!firecrawlKey) {
+      console.error("Firecrawl API key not configured");
       return new Response(
-        JSON.stringify({ success: false, error: "Firecrawl not configured. Please connect the Firecrawl integration." }),
+        JSON.stringify({ success: false, error: "Import service temporarily unavailable. Please try again later." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -227,8 +228,9 @@ Deno.serve(async (req) => {
     // Step 2: Use AI to extract structured game data
     const lovableKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableKey) {
+      console.error("Lovable AI API key not configured");
       return new Response(
-        JSON.stringify({ success: false, error: "AI extraction not configured" }),
+        JSON.stringify({ success: false, error: "Import service temporarily unavailable. Please try again later." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -349,16 +351,11 @@ ${markdown.slice(0, 18000)}`,
       const errorText = await aiResponse.text();
       console.error("AI extraction error:", aiResponse.status, errorText);
       
-      if (aiResponse.status === 429) {
+      if (aiResponse.status === 429 || aiResponse.status === 402) {
+        console.error("AI service limit reached:", aiResponse.status);
         return new Response(
-          JSON.stringify({ success: false, error: "Rate limit exceeded. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ success: false, error: "AI credits exhausted. Please add credits to continue." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ success: false, error: "Service temporarily busy. Please try again in a moment." }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
