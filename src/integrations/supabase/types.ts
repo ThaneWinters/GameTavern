@@ -197,6 +197,7 @@ export type Database = {
           game_type: Database["public"]["Enums"]["game_type"] | null
           id: string
           image_url: string | null
+          in_base_game_box: boolean | null
           is_coming_soon: boolean
           is_expansion: boolean
           is_for_sale: boolean
@@ -229,6 +230,7 @@ export type Database = {
           game_type?: Database["public"]["Enums"]["game_type"] | null
           id?: string
           image_url?: string | null
+          in_base_game_box?: boolean | null
           is_coming_soon?: boolean
           is_expansion?: boolean
           is_for_sale?: boolean
@@ -261,6 +263,7 @@ export type Database = {
           game_type?: Database["public"]["Enums"]["game_type"] | null
           id?: string
           image_url?: string | null
+          in_base_game_box?: boolean | null
           is_coming_soon?: boolean
           is_expansion?: boolean
           is_for_sale?: boolean
@@ -401,6 +404,7 @@ export type Database = {
           game_type: Database["public"]["Enums"]["game_type"] | null
           id: string | null
           image_url: string | null
+          in_base_game_box: boolean | null
           is_coming_soon: boolean | null
           is_expansion: boolean | null
           is_for_sale: boolean | null
@@ -431,6 +435,7 @@ export type Database = {
           game_type?: Database["public"]["Enums"]["game_type"] | null
           id?: string | null
           image_url?: string | null
+          in_base_game_box?: boolean | null
           is_coming_soon?: boolean | null
           is_expansion?: boolean | null
           is_for_sale?: boolean | null
@@ -461,6 +466,7 @@ export type Database = {
           game_type?: Database["public"]["Enums"]["game_type"] | null
           id?: string | null
           image_url?: string | null
+          in_base_game_box?: boolean | null
           is_coming_soon?: boolean | null
           is_expansion?: boolean | null
           is_for_sale?: boolean | null

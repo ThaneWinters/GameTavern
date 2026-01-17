@@ -536,6 +536,16 @@ const GameDetail = () => {
                         {game.crowdfunded ? "Yes" : "No"}
                       </TableCell>
                     </TableRow>
+                    {game.is_expansion && (
+                      <TableRow>
+                        <TableCell className="font-medium text-muted-foreground">
+                          Stored In
+                        </TableCell>
+                        <TableCell className="text-foreground">
+                          {game.in_base_game_box ? "Base game box" : "Separate box"}
+                        </TableCell>
+                      </TableRow>
+                    )}
                     {/* Admin-only purchase info */}
                     {isAdmin && (game.purchase_price || game.purchase_date) && (
                       <>

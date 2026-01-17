@@ -73,6 +73,7 @@ const GameForm = () => {
   const [saleCondition, setSaleCondition] = useState<SaleCondition | null>(null);
   const [isExpansion, setIsExpansion] = useState(false);
   const [parentGameId, setParentGameId] = useState<string | null>(null);
+  const [inBaseGameBox, setInBaseGameBox] = useState(false);
   const [locationRoom, setLocationRoom] = useState("");
   const [locationShelf, setLocationShelf] = useState("");
   const [purchasePrice, setPurchasePrice] = useState("");
@@ -107,6 +108,7 @@ const GameForm = () => {
       setSaleCondition(existingGame.sale_condition);
       setIsExpansion(existingGame.is_expansion);
       setParentGameId(existingGame.parent_game_id);
+      setInBaseGameBox(existingGame.in_base_game_box || false);
       setLocationRoom(existingGame.location_room || "");
       setLocationShelf(existingGame.location_shelf || "");
       setPurchasePrice(existingGame.purchase_price?.toString() || "");
@@ -183,6 +185,7 @@ const GameForm = () => {
       sale_condition: isForSale ? saleCondition : null,
       is_expansion: isExpansion,
       parent_game_id: isExpansion ? parentGameId : null,
+      in_base_game_box: isExpansion ? inBaseGameBox : false,
       location_room: locationRoom.trim() || null,
       location_shelf: locationShelf.trim() || null,
       purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
@@ -385,7 +388,10 @@ const GameForm = () => {
                     checked={isExpansion}
                     onCheckedChange={(checked) => {
                       setIsExpansion(checked === true);
-                      if (!checked) setParentGameId(null);
+                      if (!checked) {
+                        setParentGameId(null);
+                        setInBaseGameBox(false);
+                      }
                     }}
                   />
                   <div className="space-y-1">
@@ -400,21 +406,33 @@ const GameForm = () => {
 
                 {/* Parent Game Selection - Only show when Expansion is checked */}
                 {isExpansion && (
-                  <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
-                    <Label>Base Game</Label>
-                    <Select value={parentGameId || ""} onValueChange={setParentGameId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select the base game" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {parentGameOptions.map((g) => (
-                          <SelectItem key={g.id} value={g.id}>{g.title}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Select which game this is an expansion for.
-                    </p>
+                  <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
+                    <div className="space-y-2">
+                      <Label>Base Game</Label>
+                      <Select value={parentGameId || ""} onValueChange={setParentGameId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select the base game" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {parentGameOptions.map((g) => (
+                            <SelectItem key={g.id} value={g.id}>{g.title}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Select which game this is an expansion for.
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <Checkbox
+                        id="inBaseGameBox"
+                        checked={inBaseGameBox}
+                        onCheckedChange={(checked) => setInBaseGameBox(checked === true)}
+                      />
+                      <label htmlFor="inBaseGameBox" className="text-sm font-medium cursor-pointer">
+                        Stored in base game box
+                      </label>
+                    </div>
                   </div>
                 )}
               </div>
