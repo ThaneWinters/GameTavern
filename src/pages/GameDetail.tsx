@@ -14,7 +14,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { ContactSellerForm } from "@/components/games/ContactSellerForm";
-import { FavoriteButton } from "@/components/games/FavoriteButton";
 import { LogPlayDialog } from "@/components/games/LogPlayDialog";
 import { PlayHistory } from "@/components/games/PlayHistory";
 import { GameImage } from "@/components/games/GameImage";
@@ -352,7 +351,6 @@ const GameDetail = () => {
                 {game.title}
               </h1>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <FavoriteButton gameId={game.id} />
                 {isAdmin && (
                   <Button
                     variant="outline"
