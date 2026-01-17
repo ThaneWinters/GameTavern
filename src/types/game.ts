@@ -35,6 +35,7 @@ export interface Game {
   sale_condition: SaleCondition | null;
   is_expansion: boolean;
   parent_game_id: string | null;
+  in_base_game_box: boolean;
   location_room: string | null;
   location_shelf: string | null;
   purchase_price: number | null;
