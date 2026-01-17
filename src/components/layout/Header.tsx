@@ -102,7 +102,7 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
           <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2">
             Home
           </Link>
-          <Link to="/demo" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2">
+          <Link to="/?demo=true" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2">
             Demo
           </Link>
         </nav>
