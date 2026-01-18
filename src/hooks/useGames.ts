@@ -75,7 +75,11 @@ export function useGames(enabled = true) {
           game_type: game.game_type as GameType,
           play_time: game.play_time as PlayTime,
           additional_images: game.additional_images || [],
-          mechanics: mechanicsMap.get(game.id) || [],
+          // Ensure boolean fields are properly cast from nullable view columns
+          is_expansion: game.is_expansion === true,
+          is_coming_soon: game.is_coming_soon === true,
+          is_for_sale: game.is_for_sale === true,
+          mechanics: mechanicsMap.get(game.id!) || [],
           expansions: [] as GameWithRelations[],
         }));
 
