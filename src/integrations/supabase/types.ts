@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      game_admin_data: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: string
+          purchase_date: string | null
+          purchase_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: string
+          purchase_date?: string | null
+          purchase_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: string
+          purchase_date?: string | null
+          purchase_price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_admin_data_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: true
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_admin_data_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: true
+            referencedRelation: "games_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_mechanics: {
         Row: {
           game_id: string
@@ -208,8 +250,6 @@ export type Database = {
           parent_game_id: string | null
           play_time: Database["public"]["Enums"]["play_time"] | null
           publisher_id: string | null
-          purchase_date: string | null
-          purchase_price: number | null
           sale_condition: Database["public"]["Enums"]["sale_condition"] | null
           sale_price: number | null
           sleeved: boolean | null
@@ -242,8 +282,6 @@ export type Database = {
           parent_game_id?: string | null
           play_time?: Database["public"]["Enums"]["play_time"] | null
           publisher_id?: string | null
-          purchase_date?: string | null
-          purchase_price?: number | null
           sale_condition?: Database["public"]["Enums"]["sale_condition"] | null
           sale_price?: number | null
           sleeved?: boolean | null
@@ -276,8 +314,6 @@ export type Database = {
           parent_game_id?: string | null
           play_time?: Database["public"]["Enums"]["play_time"] | null
           publisher_id?: string | null
-          purchase_date?: string | null
-          purchase_price?: number | null
           sale_condition?: Database["public"]["Enums"]["sale_condition"] | null
           sale_price?: number | null
           sleeved?: boolean | null
