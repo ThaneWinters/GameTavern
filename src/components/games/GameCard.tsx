@@ -72,9 +72,11 @@ export function GameCard({ game, priority = false }: GameCardProps) {
 
           <CardContent className="p-4">
             {/* Title */}
-            <h3 className="font-display text-lg font-semibold text-foreground line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+            <h3 className="font-display text-lg font-semibold text-foreground line-clamp-2 mb-3 group-hover:text-primary transition-colors">
               {game.title}
             </h3>
+
+            <hr className="border-border mb-3" />
 
             {/* Quick Info */}
             <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
@@ -87,6 +89,8 @@ export function GameCard({ game, priority = false }: GameCardProps) {
                 {game.play_time.replace(' Minutes', 'm').replace(' Hours', 'h')}
               </span>
             </div>
+
+            <hr className="border-border mb-3" />
 
             {/* Tags */}
             <div className="flex flex-wrap gap-1.5">
