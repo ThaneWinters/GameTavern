@@ -197,17 +197,17 @@ const GameDetail = () => {
         remarkPlugins={[remarkGfm]}
         components={{
           h2: ({ children }) => (
-            <h2 className="font-display text-lg font-semibold text-foreground mt-4 mb-2 first:mt-0">
+            <h2 className="font-display text-xl font-semibold text-foreground mt-6 mb-3 first:mt-0">
               {children}
             </h2>
           ),
           h3: ({ children }) => (
-            <h3 className="font-display text-base font-semibold text-foreground mt-3 mb-1.5">
+            <h3 className="font-display text-lg font-semibold text-foreground mt-4 mb-2">
               {children}
             </h3>
           ),
           p: ({ children }) => (
-            <p className="text-sm text-muted-foreground leading-normal mb-2">
+            <p className="text-muted-foreground leading-relaxed mb-4">
               {children}
             </p>
           ),
@@ -215,17 +215,17 @@ const GameDetail = () => {
             <strong className="font-semibold text-foreground">{children}</strong>
           ),
           ul: ({ children }) => (
-            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground mb-2 ml-2">
+            <ul className="list-disc list-inside space-y-2 text-muted-foreground mb-4 ml-2">
               {children}
             </ul>
           ),
           ol: ({ children }) => (
-            <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground mb-2 ml-2">
+            <ol className="list-decimal list-inside space-y-2 text-muted-foreground mb-4 ml-2">
               {children}
             </ol>
           ),
           li: ({ children }) => (
-            <li className="leading-normal">{children}</li>
+            <li className="leading-relaxed">{children}</li>
           ),
         }}
       >
@@ -432,16 +432,10 @@ const GameDetail = () => {
 
               <TabsContent value="description" className="mt-0">
                 <div className="prose prose-sm max-w-none">
-                  <h3 className="font-display text-lg font-semibold mb-3 text-foreground">
+                  <h2 className="font-display text-xl font-semibold mb-4 text-foreground">
                     Description
-                  </h3>
+                  </h2>
                   <DescriptionContent content={game.description} />
-                  
-                  <hr className="my-6 border-border" />
-                  
-                  <h3 className="font-display text-lg font-semibold mb-3 text-foreground">
-                    Gameplay Overview
-                  </h3>
                 </div>
               </TabsContent>
 
@@ -642,7 +636,7 @@ const GameDetail = () => {
             {/* Gameplay Videos Section */}
             {game.youtube_videos && game.youtube_videos.length > 0 && (
               <>
-                <hr className="my-6 border-border" />
+                <hr className="my-8 border-border" />
                 <YouTubeVideoList videos={game.youtube_videos} title="Gameplay Videos" />
               </>
             )}
