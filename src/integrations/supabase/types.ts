@@ -516,6 +516,30 @@ export type Database = {
           },
         ]
       }
+      site_settings_public: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          key: string | null
+          updated_at: string | null
+          value: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          key?: string | null
+          updated_at?: string | null
+          value?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          key?: string | null
+          updated_at?: string | null
+          value?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       generate_slug: { Args: { title: string }; Returns: string }
