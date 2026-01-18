@@ -37,6 +37,7 @@ import {
   type PlayTime,
   type SaleCondition
 } from "@/types/game";
+import { YouTubeVideoEditor } from "@/components/games/YouTubeEmbed";
 
 const GameForm = () => {
   const { id } = useParams();
@@ -83,6 +84,7 @@ const GameForm = () => {
   const [crowdfunded, setCrowdfunded] = useState(false);
   const [newMechanic, setNewMechanic] = useState("");
   const [newPublisher, setNewPublisher] = useState("");
+  const [youtubeVideos, setYoutubeVideos] = useState<string[]>([]);
 
   // Filter out current game from parent options (can't be its own parent)
   const parentGameOptions = allGames.filter((g) => g.id !== id);
@@ -116,6 +118,7 @@ const GameForm = () => {
       setSleeved(existingGame.sleeved || false);
       setUpgradedComponents(existingGame.upgraded_components || false);
       setCrowdfunded(existingGame.crowdfunded || false);
+      setYoutubeVideos(existingGame.youtube_videos || []);
     }
   }, [existingGame]);
 
@@ -193,6 +196,7 @@ const GameForm = () => {
       sleeved,
       upgraded_components: upgradedComponents,
       crowdfunded,
+      youtube_videos: youtubeVideos,
     };
 
     try {
@@ -595,6 +599,17 @@ const GameForm = () => {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Private purchase tracking - only visible to admins.
+                </p>
+              </div>
+
+              {/* YouTube Videos */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Gameplay Videos</h3>
+                <div className="p-4 rounded-lg border border-border bg-muted/50">
+                  <YouTubeVideoEditor videos={youtubeVideos} onChange={setYoutubeVideos} />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Add YouTube links to gameplay videos, reviews, or tutorials.
                 </p>
               </div>
 

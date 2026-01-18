@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, ExternalLink, Edit, ChevronLeft, ChevronRight, DollarSign, Tag, Package, Play, MapPin } from "lucide-react";
+import { ArrowLeft, ExternalLink, Edit, ChevronLeft, ChevronRight, DollarSign, Tag, Package, Play, MapPin, Video } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -17,6 +17,7 @@ import { ContactSellerForm } from "@/components/games/ContactSellerForm";
 import { LogPlayDialog } from "@/components/games/LogPlayDialog";
 import { PlayHistory } from "@/components/games/PlayHistory";
 import { GameImage } from "@/components/games/GameImage";
+import { YouTubeVideoList } from "@/components/games/YouTubeEmbed";
 import {
   Table,
   TableBody,
@@ -420,13 +421,17 @@ const GameDetail = () => {
               </a>
             )}
 
-            {/* Tabs for Description and Additional Info */}
+            {/* Tabs for Description, Videos, and Additional Info */}
             <Tabs defaultValue="description" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 mb-4">
+              <TabsList className="grid w-full grid-cols-5 mb-4">
                 <TabsTrigger value="description">Description</TabsTrigger>
+                <TabsTrigger value="videos" className="flex items-center gap-1">
+                  <Video className="h-3 w-3" />
+                  Videos
+                </TabsTrigger>
                 <TabsTrigger value="info">Info</TabsTrigger>
                 <TabsTrigger value="location">Location</TabsTrigger>
-                <TabsTrigger value="plays">Play History</TabsTrigger>
+                <TabsTrigger value="plays">Plays</TabsTrigger>
               </TabsList>
 
               <TabsContent value="description" className="mt-0">
@@ -436,6 +441,17 @@ const GameDetail = () => {
                   </h2>
                   <DescriptionContent content={game.description} />
                 </div>
+              </TabsContent>
+
+              <TabsContent value="videos" className="mt-0">
+                {(game.youtube_videos && game.youtube_videos.length > 0) ? (
+                  <YouTubeVideoList videos={game.youtube_videos} title="Gameplay Videos" />
+                ) : (
+                  <div className="text-center py-8">
+                    <Video className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+                    <p className="text-muted-foreground">No gameplay videos available.</p>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="info" className="mt-0">

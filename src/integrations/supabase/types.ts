@@ -218,6 +218,7 @@ export type Database = {
           title: string
           updated_at: string | null
           upgraded_components: boolean | null
+          youtube_videos: string[] | null
         }
         Insert: {
           additional_images?: string[] | null
@@ -251,6 +252,7 @@ export type Database = {
           title: string
           updated_at?: string | null
           upgraded_components?: boolean | null
+          youtube_videos?: string[] | null
         }
         Update: {
           additional_images?: string[] | null
@@ -284,6 +286,7 @@ export type Database = {
           title?: string
           updated_at?: string | null
           upgraded_components?: boolean | null
+          youtube_videos?: string[] | null
         }
         Relationships: [
           {
@@ -423,6 +426,7 @@ export type Database = {
           title: string | null
           updated_at: string | null
           upgraded_components: boolean | null
+          youtube_videos: string[] | null
         }
         Insert: {
           additional_images?: string[] | null
@@ -454,6 +458,7 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
           upgraded_components?: boolean | null
+          youtube_videos?: string[] | null
         }
         Update: {
           additional_images?: string[] | null
@@ -485,6 +490,7 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
           upgraded_components?: boolean | null
+          youtube_videos?: string[] | null
         }
         Relationships: [
           {
