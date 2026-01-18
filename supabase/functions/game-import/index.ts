@@ -256,17 +256,17 @@ IMPORTANT RULES:
    - play_time: ${PLAY_TIME_OPTIONS.map(p => `"${p}"`).join(", ")}
    - game_type: ${GAME_TYPE_OPTIONS.map(t => `"${t}"`).join(", ")}
 
-2. For the DESCRIPTION field, create a COMPREHENSIVE, DETAILED description that includes:
-   - An engaging overview paragraph about the game
-   - A "## Quick Gameplay Overview" section with:
-     - **Goal:** What players are trying to achieve
-     - **On Your Turn:** The main actions players can take (use numbered lists)
-     - **Scoring:** How points are earned
-     - **End Game:** When and how the game ends
-   - A closing paragraph about the game's appeal/experience
+2. For the DESCRIPTION field, create a CONCISE description that includes:
+   - An engaging overview paragraph about the game (2-3 sentences max)
+   - A "## Quick Gameplay Overview" section with BULLET POINTS:
+     - **Goal:** One sentence about what players are trying to achieve
+     - **Each Round:** or **On Your Turn:** Use bullet points with bold labels for key actions (keep each to one line)
+     - **Final Round:** or **End Game:** One sentence about how the game ends
+     - **Winner:** One sentence about victory condition
+   - A brief closing sentence about what makes the game special (optional)
    
    Use markdown formatting with headers (##), bold (**text**), and bullet points.
-   Make it detailed and informative - aim for 300-500 words.
+   Keep it CONCISE - aim for 150-200 words maximum. Players should be able to scan and understand quickly.
 
 3. For IMAGES - VERY SIMPLE RULES:
    - You are given a SHORT list of official box art images
@@ -303,7 +303,7 @@ ${markdown.slice(0, 18000)}`,
                   title: { type: "string", description: "The game title" },
                   description: { 
                     type: "string", 
-                    description: "Comprehensive game description with markdown formatting. Include overview, Quick Gameplay Overview section with Goal/Turn Actions/Scoring/End Game, and closing appeal paragraph. Aim for 300-500 words." 
+                    description: "Concise game description with markdown formatting. Include brief overview, Quick Gameplay Overview section with bullet points for Goal/Actions/End Game/Winner. Keep to 150-200 words max." 
                   },
                   difficulty: { 
                     type: "string", 
