@@ -76,20 +76,22 @@ export function Sidebar({ isOpen }: SidebarProps) {
   const { toast } = useToast();
 
   // Use demo data for mechanics/publishers when in demo mode
+  // Dedupe by name since imported games may have different IDs for the same mechanic
   const mechanics = useMemo(() => {
     if (!isDemoMode) return dbMechanics;
     const mechMap = new Map<string, { id: string; name: string }>();
     demoGames.forEach(g => {
-      g.mechanics.forEach(m => mechMap.set(m.id, m));
+      g.mechanics.forEach(m => mechMap.set(m.name, m));
     });
     return Array.from(mechMap.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [isDemoMode, dbMechanics, demoGames]);
 
   const publishers = useMemo(() => {
     if (!isDemoMode) return dbPublishers;
+    // Dedupe by name since imported games may have different IDs for the same publisher
     const pubMap = new Map<string, { id: string; name: string }>();
     demoGames.forEach(g => {
-      if (g.publisher) pubMap.set(g.publisher.id, g.publisher);
+      if (g.publisher) pubMap.set(g.publisher.name, g.publisher);
     });
     return Array.from(pubMap.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [isDemoMode, dbPublishers, demoGames]);
