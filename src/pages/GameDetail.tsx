@@ -583,7 +583,7 @@ const GameDetail = () => {
                 <h2 className="font-display text-xl font-semibold mb-4 text-foreground">
                   Storage Location
                 </h2>
-                {(game.location_room || game.location_shelf) ? (
+                {(game.location_room || game.location_shelf || game.location_misc) ? (
                   <Table>
                     <TableBody>
                       {game.location_room && (
@@ -606,6 +606,16 @@ const GameDetail = () => {
                           </TableCell>
                           <TableCell className="text-foreground">
                             {game.location_shelf}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {game.location_misc && (
+                        <TableRow>
+                          <TableCell className="font-medium text-muted-foreground">
+                            Notes
+                          </TableCell>
+                          <TableCell className="text-foreground">
+                            {game.location_misc}
                           </TableCell>
                         </TableRow>
                       )}
