@@ -42,6 +42,7 @@ export interface Game {
   sleeved: boolean;
   upgraded_components: boolean;
   crowdfunded: boolean;
+  inserts?: boolean;
   youtube_videos: string[];
   created_at: string;
   updated_at: string;

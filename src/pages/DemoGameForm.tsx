@@ -82,6 +82,7 @@ const DemoGameForm = () => {
   const [sleeved, setSleeved] = useState(false);
   const [upgradedComponents, setUpgradedComponents] = useState(false);
   const [crowdfunded, setCrowdfunded] = useState(false);
+  const [inserts, setInserts] = useState(false);
 
   // Filter out current game from parent options
   const parentGameOptions = demoGames.filter((g) => g.id !== id && !g.is_expansion);
@@ -114,6 +115,7 @@ const DemoGameForm = () => {
       setSleeved(existingGame.sleeved || false);
       setUpgradedComponents(existingGame.upgraded_components || false);
       setCrowdfunded(existingGame.crowdfunded || false);
+      setInserts(existingGame.inserts || false);
     }
   }, [existingGame]);
 
@@ -168,6 +170,7 @@ const DemoGameForm = () => {
       sleeved,
       upgraded_components: upgradedComponents,
       crowdfunded,
+      inserts,
       slug: title.trim().toLowerCase().replace(/\s+/g, "-"),
     };
 
@@ -552,6 +555,16 @@ const DemoGameForm = () => {
                     />
                     <label htmlFor="crowdfunded" className="text-sm font-medium cursor-pointer">
                       Crowdfunded
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="inserts"
+                      checked={inserts}
+                      onCheckedChange={(checked) => setInserts(checked === true)}
+                    />
+                    <label htmlFor="inserts" className="text-sm font-medium cursor-pointer">
+                      Inserts
                     </label>
                   </div>
                 </div>

@@ -240,6 +240,7 @@ export type Database = {
           id: string
           image_url: string | null
           in_base_game_box: boolean | null
+          inserts: boolean | null
           is_coming_soon: boolean
           is_expansion: boolean
           is_for_sale: boolean
@@ -273,6 +274,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           in_base_game_box?: boolean | null
+          inserts?: boolean | null
           is_coming_soon?: boolean
           is_expansion?: boolean
           is_for_sale?: boolean
@@ -306,6 +308,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           in_base_game_box?: boolean | null
+          inserts?: boolean | null
           is_coming_soon?: boolean
           is_expansion?: boolean
           is_for_sale?: boolean

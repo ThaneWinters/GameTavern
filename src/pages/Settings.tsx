@@ -306,6 +306,7 @@ const Settings = () => {
   const [importSleeved, setImportSleeved] = useState(false);
   const [importUpgradedComponents, setImportUpgradedComponents] = useState(false);
   const [importCrowdfunded, setImportCrowdfunded] = useState(false);
+  const [importInserts, setImportInserts] = useState(false);
   
   // Profile form states
   const [newEmail, setNewEmail] = useState("");
@@ -497,6 +498,7 @@ const Settings = () => {
             sleeved: importSleeved,
             upgraded_components: importUpgradedComponents,
             crowdfunded: importCrowdfunded,
+            inserts: importInserts,
           },
         });
 
@@ -553,6 +555,8 @@ const Settings = () => {
         setImportPurchaseDate("");
         setImportSleeved(false);
         setImportUpgradedComponents(false);
+        setImportCrowdfunded(false);
+        setImportInserts(false);
       } else {
         throw new Error(data?.error || "Import failed");
       }
@@ -1194,6 +1198,17 @@ const Settings = () => {
                               />
                               <label htmlFor="import-crowdfunded" className="text-sm cursor-pointer">
                                 Crowdfunded
+                              </label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id="import-inserts"
+                                checked={importInserts}
+                                onCheckedChange={(checked) => setImportInserts(checked === true)}
+                                disabled={isImporting}
+                              />
+                              <label htmlFor="import-inserts" className="text-sm cursor-pointer">
+                                Inserts
                               </label>
                             </div>
                           </div>

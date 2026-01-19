@@ -264,6 +264,7 @@ const DemoSettings = () => {
   const [importSleeved, setImportSleeved] = useState(false);
   const [importUpgradedComponents, setImportUpgradedComponents] = useState(false);
   const [importCrowdfunded, setImportCrowdfunded] = useState(false);
+  const [importInserts, setImportInserts] = useState(false);
 
   // Demo mechanics and publishers derived from games
   // Dedupe by name since imported games may have different IDs for the same mechanic
@@ -431,6 +432,7 @@ const DemoSettings = () => {
       sleeved: importSleeved,
       upgraded_components: importUpgradedComponents,
       crowdfunded: importCrowdfunded,
+      inserts: importInserts,
       bgg_url: trimmed,
       bgg_id: bggId,
       mechanics,
@@ -466,6 +468,7 @@ const DemoSettings = () => {
     setImportSleeved(false);
     setImportUpgradedComponents(false);
     setImportCrowdfunded(false);
+    setImportInserts(false);
     setIsImporting(false);
   };
 
@@ -768,6 +771,17 @@ const DemoSettings = () => {
                               />
                               <label htmlFor="demo-import-crowdfunded" className="text-sm cursor-pointer">
                                 Crowdfunded
+                              </label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id="demo-import-inserts"
+                                checked={importInserts}
+                                onCheckedChange={(checked) => setImportInserts(checked === true)}
+                                disabled={isImporting}
+                              />
+                              <label htmlFor="demo-import-inserts" className="text-sm cursor-pointer">
+                                Inserts
                               </label>
                             </div>
                           </div>

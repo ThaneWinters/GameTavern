@@ -548,6 +548,14 @@ const GameDetail = () => {
                         {game.crowdfunded ? "Yes" : "No"}
                       </TableCell>
                     </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium text-muted-foreground">
+                        Inserts
+                      </TableCell>
+                      <TableCell className="text-foreground">
+                        {game.inserts ? "Yes" : "No"}
+                      </TableCell>
+                    </TableRow>
                     {game.is_expansion && (
                       <TableRow>
                         <TableCell className="font-medium text-muted-foreground">

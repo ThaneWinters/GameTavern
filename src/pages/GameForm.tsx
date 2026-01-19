@@ -83,6 +83,7 @@ const GameForm = () => {
   const [sleeved, setSleeved] = useState(false);
   const [upgradedComponents, setUpgradedComponents] = useState(false);
   const [crowdfunded, setCrowdfunded] = useState(false);
+  const [inserts, setInserts] = useState(false);
   const [newMechanic, setNewMechanic] = useState("");
   const [newPublisher, setNewPublisher] = useState("");
   const [youtubeVideos, setYoutubeVideos] = useState<string[]>([]);
@@ -120,6 +121,7 @@ const GameForm = () => {
       setSleeved(existingGame.sleeved || false);
       setUpgradedComponents(existingGame.upgraded_components || false);
       setCrowdfunded(existingGame.crowdfunded || false);
+      setInserts(existingGame.inserts || false);
       setYoutubeVideos(existingGame.youtube_videos || []);
     }
   }, [existingGame]);
@@ -199,6 +201,7 @@ const GameForm = () => {
       sleeved,
       upgraded_components: upgradedComponents,
       crowdfunded,
+      inserts,
       youtube_videos: youtubeVideos,
     };
 
@@ -575,6 +578,16 @@ const GameForm = () => {
                     />
                     <label htmlFor="crowdfunded" className="text-sm font-medium cursor-pointer">
                       Crowdfunded
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="inserts"
+                      checked={inserts}
+                      onCheckedChange={(checked) => setInserts(checked === true)}
+                    />
+                    <label htmlFor="inserts" className="text-sm font-medium cursor-pointer">
+                      Inserts
                     </label>
                   </div>
                 </div>
