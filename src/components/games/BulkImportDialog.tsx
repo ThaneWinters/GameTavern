@@ -153,24 +153,125 @@ export function BulkImportDialog({
         let demoGames: any[] = [];
         
         if (mode === "csv") {
-          // Parse CSV and create demo games from it
-          const lines = csvData.trim().split("\n");
-          if (lines.length > 1) {
-            const headers = lines[0].toLowerCase().split(",").map(h => h.trim());
-            const titleIndex = headers.findIndex(h => ["title", "name", "game"].includes(h));
+          // Parse CSV properly handling multi-line quoted fields
+          const parseCSV = (data: string): Record<string, string>[] => {
+            const rows: string[][] = [];
+            let currentRow: string[] = [];
+            let currentField = "";
+            let inQuotes = false;
             
-            for (let i = 1; i < lines.length; i++) {
-              const values = lines[i].split(",").map(v => v.trim().replace(/^"|"$/g, ""));
-              if (values[titleIndex !== -1 ? titleIndex : 0]) {
-                demoGames.push({
-                  id: `demo-import-${Date.now()}-${i}`,
-                  title: values[titleIndex !== -1 ? titleIndex : 0],
-                  game_type: "Board Game",
-                  location_room: locationRoom || "Game Room",
-                  location_shelf: locationShelf || null,
-                  location_misc: locationMisc || null,
-                });
+            for (let i = 0; i < data.length; i++) {
+              const char = data[i];
+              const nextChar = data[i + 1];
+              
+              if (char === '"') {
+                if (!inQuotes) {
+                  inQuotes = true;
+                } else if (nextChar === '"') {
+                  currentField += '"';
+                  i++;
+                } else {
+                  inQuotes = false;
+                }
+              } else if (char === ',' && !inQuotes) {
+                currentRow.push(currentField.trim());
+                currentField = "";
+              } else if ((char === '\n' || (char === '\r' && nextChar === '\n')) && !inQuotes) {
+                if (char === '\r') i++;
+                currentRow.push(currentField.trim());
+                if (currentRow.some(field => field !== "")) {
+                  rows.push(currentRow);
+                }
+                currentRow = [];
+                currentField = "";
+              } else if (char === '\r' && !inQuotes) {
+                currentRow.push(currentField.trim());
+                if (currentRow.some(field => field !== "")) {
+                  rows.push(currentRow);
+                }
+                currentRow = [];
+                currentField = "";
+              } else {
+                currentField += char;
               }
+            }
+            
+            if (currentField || currentRow.length > 0) {
+              currentRow.push(currentField.trim());
+              if (currentRow.some(field => field !== "")) {
+                rows.push(currentRow);
+              }
+            }
+            
+            if (rows.length < 2) return [];
+            
+            const headers = rows[0].map(h => h.toLowerCase().trim().replace(/\s+/g, '_'));
+            const result: Record<string, string>[] = [];
+            
+            for (let i = 1; i < rows.length; i++) {
+              const values = rows[i];
+              const row: Record<string, string> = {};
+              headers.forEach((header, idx) => {
+                row[header] = values[idx] || "";
+              });
+              result.push(row);
+            }
+            
+            return result;
+          };
+          
+          const parsedRows = parseCSV(csvData);
+          
+          const parseBool = (val: string | undefined): boolean => {
+            if (!val) return false;
+            const v = val.toLowerCase().trim();
+            return v === "true" || v === "yes" || v === "1";
+          };
+          
+          const parseNum = (val: string | undefined): number | undefined => {
+            if (!val) return undefined;
+            const n = parseInt(val, 10);
+            return isNaN(n) ? undefined : n;
+          };
+          
+          for (const row of parsedRows) {
+            const title = row.title || row.name || row.game || row.game_name || row.game_title;
+            if (title) {
+              // Parse mechanics from semicolon-separated string
+              const mechanicsStr = row.mechanics || row.mechanic || "";
+              const mechanics = mechanicsStr
+                .split(";")
+                .map((m: string) => m.trim())
+                .filter((m: string) => m.length > 0);
+              
+              demoGames.push({
+                id: `demo-import-${Date.now()}-${demoGames.length}`,
+                title,
+                game_type: row.type || row.game_type || "Board Game",
+                difficulty: row.difficulty || row.weight || null,
+                play_time: row.play_time || row.playtime || null,
+                min_players: parseNum(row.min_players),
+                max_players: parseNum(row.max_players),
+                suggested_age: row.suggested_age || row.age || null,
+                publisher: row.publisher || null,
+                mechanics: mechanics.length > 0 ? mechanics : undefined,
+                bgg_id: row.bgg_id || null,
+                bgg_url: row.bgg_url || null,
+                description: row.description || null,
+                is_expansion: parseBool(row.is_expansion),
+                is_coming_soon: parseBool(row.is_coming_soon),
+                is_for_sale: parseBool(row.is_for_sale),
+                sale_price: parseNum(row.sale_price) || null,
+                sale_condition: row.sale_condition || null,
+                location_room: row.location_room || locationRoom || null,
+                location_shelf: row.location_shelf || locationShelf || null,
+                location_misc: row.location_misc || locationMisc || null,
+                sleeved: parseBool(row.sleeved),
+                upgraded_components: parseBool(row.upgraded_components),
+                crowdfunded: parseBool(row.crowdfunded),
+                inserts: parseBool(row.inserts),
+                in_base_game_box: parseBool(row.in_base_game_box),
+              });
             }
           }
         } else if (mode === "bgg_collection") {
