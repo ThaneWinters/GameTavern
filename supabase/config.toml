@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.condense-descriptions]
 verify_jwt = false
+
+[functions.bulk-import]
+verify_jwt = false
+
+[functions.bgg-lookup]
+verify_jwt = false

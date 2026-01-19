@@ -21,7 +21,8 @@ import {
   ChevronLeft,
   ChevronRight,
   MapPin,
-  DollarSign
+  DollarSign,
+  FileSpreadsheet
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/useAuth";
@@ -71,6 +72,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ThemeCustomizer } from "@/components/settings/ThemeCustomizer";
+import { BulkImportDialog } from "@/components/games/BulkImportDialog";
 import { SALE_CONDITION_OPTIONS, type SaleCondition, type GameWithRelations } from "@/types/game";
 
 type UserWithRole = {
@@ -307,6 +309,7 @@ const Settings = () => {
   const [importUpgradedComponents, setImportUpgradedComponents] = useState(false);
   const [importCrowdfunded, setImportCrowdfunded] = useState(false);
   const [importInserts, setImportInserts] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
   
   // Profile form states
   const [newEmail, setNewEmail] = useState("");
@@ -1280,13 +1283,17 @@ const Settings = () => {
                       Add New Game
                     </CardTitle>
                     <CardDescription>
-                      Manually add a new game to your collection
+                      Manually add a new game or bulk import multiple games
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="flex gap-3 flex-wrap">
                     <Button onClick={() => navigate("/admin/add")}>
                       <Plus className="h-4 w-4 mr-2" />
                       Add Game Manually
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowBulkImport(true)}>
+                      <FileSpreadsheet className="h-4 w-4 mr-2" />
+                      Bulk Import
                     </Button>
                   </CardContent>
                 </Card>
@@ -1993,6 +2000,15 @@ const Settings = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Bulk Import Dialog */}
+        <BulkImportDialog
+          open={showBulkImport}
+          onOpenChange={setShowBulkImport}
+          onImportComplete={() => {
+            queryClient.invalidateQueries({ queryKey: ["games"] });
+          }}
+        />
       </div>
     </Layout>
   );
