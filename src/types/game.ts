@@ -38,6 +38,7 @@ export interface Game {
   in_base_game_box: boolean;
   location_room: string | null;
   location_shelf: string | null;
+  location_misc: string | null;
   sleeved: boolean;
   upgraded_components: boolean;
   crowdfunded: boolean;

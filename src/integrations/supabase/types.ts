@@ -243,6 +243,7 @@ export type Database = {
           is_coming_soon: boolean
           is_expansion: boolean
           is_for_sale: boolean
+          location_misc: string | null
           location_room: string | null
           location_shelf: string | null
           max_players: number | null
@@ -275,6 +276,7 @@ export type Database = {
           is_coming_soon?: boolean
           is_expansion?: boolean
           is_for_sale?: boolean
+          location_misc?: string | null
           location_room?: string | null
           location_shelf?: string | null
           max_players?: number | null
@@ -307,6 +309,7 @@ export type Database = {
           is_coming_soon?: boolean
           is_expansion?: boolean
           is_for_sale?: boolean
+          location_misc?: string | null
           location_room?: string | null
           location_shelf?: string | null
           max_players?: number | null

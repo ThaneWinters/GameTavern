@@ -72,6 +72,7 @@ export function useGames(enabled = true) {
 
       const gamesWithRelations = (games || []).map((game) => ({
         ...game,
+        location_misc: (game as any).location_misc ?? null,
         admin_data: null,
         publisher: game.publisher_id ? publisherMap.get(game.publisher_id) : null,
         difficulty: game.difficulty as DifficultyLevel,
@@ -112,6 +113,7 @@ function normalizeAdminData(input: unknown): AdminDataRow | null {
 function processGames(games: any[]): GameWithRelations[] {
   const allGames = games.map((game) => ({
     ...game,
+    location_misc: game.location_misc ?? null,
     admin_data: normalizeAdminData((game as any).admin_data),
     difficulty: game.difficulty as DifficultyLevel,
     game_type: game.game_type as GameType,

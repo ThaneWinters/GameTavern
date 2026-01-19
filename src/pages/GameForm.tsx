@@ -77,6 +77,7 @@ const GameForm = () => {
   const [inBaseGameBox, setInBaseGameBox] = useState(false);
   const [locationRoom, setLocationRoom] = useState("");
   const [locationShelf, setLocationShelf] = useState("");
+  const [locationMisc, setLocationMisc] = useState("");
   const [purchasePrice, setPurchasePrice] = useState("");
   const [purchaseDate, setPurchaseDate] = useState("");
   const [sleeved, setSleeved] = useState(false);
@@ -113,6 +114,7 @@ const GameForm = () => {
       setInBaseGameBox(existingGame.in_base_game_box || false);
       setLocationRoom(existingGame.location_room || "");
       setLocationShelf(existingGame.location_shelf || "");
+      setLocationMisc(existingGame.location_misc || "");
       setPurchasePrice(existingGame.admin_data?.purchase_price?.toString() || "");
       setPurchaseDate(existingGame.admin_data?.purchase_date || "");
       setSleeved(existingGame.sleeved || false);
@@ -191,6 +193,7 @@ const GameForm = () => {
       in_base_game_box: isExpansion ? inBaseGameBox : false,
       location_room: locationRoom.trim() || null,
       location_shelf: locationShelf.trim() || null,
+      location_misc: locationMisc.trim() || null,
       purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
       purchase_date: purchaseDate || null,
       sleeved,
@@ -531,6 +534,15 @@ const GameForm = () => {
                       value={locationShelf}
                       onChange={(e) => setLocationShelf(e.target.value)}
                       placeholder="e.g., Shelf A, Top Shelf"
+                    />
+                  </div>
+                  <div className="sm:col-span-2 space-y-2">
+                    <Label htmlFor="locationMisc">Additional Location Notes</Label>
+                    <Input
+                      id="locationMisc"
+                      value={locationMisc}
+                      onChange={(e) => setLocationMisc(e.target.value)}
+                      placeholder="e.g., In closet, Behind couch, etc."
                     />
                   </div>
                 </div>
