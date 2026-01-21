@@ -7,6 +7,7 @@ import { Layout } from "@/components/layout/Layout";
 import { useGame, useGames } from "@/hooks/useGames";
 import { useAuth } from "@/hooks/useAuth";
 import { useDemoMode } from "@/contexts/DemoContext";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { directImageUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +34,7 @@ const GameDetail = () => {
   const { data: realGame, isLoading: isRealLoading } = useGame(isDemoMode ? undefined : slug);
   const { data: realGames } = useGames(!isDemoMode);
   const { isAdmin } = useAuth();
+  const { playLogs } = useFeatureFlags();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [brokenImageUrls, setBrokenImageUrls] = useState<string[]>([]);
 
@@ -426,11 +428,11 @@ const GameDetail = () => {
 
             {/* Tabs for Description and Additional Info */}
             <Tabs defaultValue="description" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 mb-4">
+              <TabsList className={`grid w-full mb-4 ${playLogs ? 'grid-cols-4' : 'grid-cols-3'}`}>
                 <TabsTrigger value="description">Description</TabsTrigger>
                 <TabsTrigger value="info">Info</TabsTrigger>
                 <TabsTrigger value="location">Location</TabsTrigger>
-                <TabsTrigger value="plays">Play History</TabsTrigger>
+                {playLogs && <TabsTrigger value="plays">Play History</TabsTrigger>}
               </TabsList>
 
               <TabsContent value="description" className="mt-0">
@@ -644,22 +646,24 @@ const GameDetail = () => {
                 )}
               </TabsContent>
 
-              <TabsContent value="plays" className="mt-0">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-display text-xl font-semibold text-foreground">
-                    Play History
-                  </h2>
-                  {isAdmin && (
-                    <LogPlayDialog gameId={game.id} gameTitle={game.title}>
-                      <Button size="sm">
-                        <Play className="h-4 w-4 mr-2" />
-                        Log Play
-                      </Button>
-                    </LogPlayDialog>
-                  )}
-                </div>
-                <PlayHistory gameId={game.id} />
-              </TabsContent>
+              {playLogs && (
+                <TabsContent value="plays" className="mt-0">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-display text-xl font-semibold text-foreground">
+                      Play History
+                    </h2>
+                    {isAdmin && (
+                      <LogPlayDialog gameId={game.id} gameTitle={game.title}>
+                        <Button size="sm">
+                          <Play className="h-4 w-4 mr-2" />
+                          Log Play
+                        </Button>
+                      </LogPlayDialog>
+                    )}
+                  </div>
+                  <PlayHistory gameId={game.id} />
+                </TabsContent>
+              )}
             </Tabs>
 
           </div>
