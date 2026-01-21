@@ -23,6 +23,12 @@ export interface SiteSettings {
   theme_font_display?: string;
   theme_font_body?: string;
   turnstile_site_key?: string;
+  // Feature flags
+  feature_play_logs?: string;
+  feature_wishlist?: string;
+  feature_for_sale?: string;
+  feature_messaging?: string;
+  feature_coming_soon?: string;
 }
 
 export function useSiteSettings() {

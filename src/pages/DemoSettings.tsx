@@ -19,7 +19,8 @@ import {
   MapPin,
   DollarSign,
   FileSpreadsheet,
-  Download
+  Download,
+  ToggleRight
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { useDemoMode } from "@/contexts/DemoContext";
@@ -27,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BulkImportDialog } from "@/components/games/BulkImportDialog";
+import { DemoFeatureFlagsAdmin } from "@/components/settings/DemoFeatureFlagsAdmin";
 import { 
   Table, 
   TableBody, 
@@ -605,8 +607,8 @@ const DemoSettings = () => {
           <AlertTriangle className="h-4 w-4 text-amber-500" />
           <AlertTitle className="text-amber-600 dark:text-amber-400">Demo Mode Active</AlertTitle>
           <AlertDescription className="text-amber-600/80 dark:text-amber-400/80">
-            You're exploring the admin panel in demo mode. All changes are temporary and won't affect any real data.
-            Changes will be lost when you leave this page.
+            You're exploring the admin panel in demo mode. All changes are saved to your browser session only. 
+            Data persists through refreshes but resets when you close the tab.
           </AlertDescription>
         </Alert>
 
@@ -647,6 +649,10 @@ const DemoSettings = () => {
             <TabsTrigger value="publishers" className="flex items-center gap-2">
               <Building className="h-4 w-4" />
               Publishers
+            </TabsTrigger>
+            <TabsTrigger value="features" className="flex items-center gap-2">
+              <ToggleRight className="h-4 w-4" />
+              Features
             </TabsTrigger>
           </TabsList>
 
@@ -1067,6 +1073,11 @@ const DemoSettings = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Features Tab */}
+          <TabsContent value="features" className="space-y-6">
+            <DemoFeatureFlagsAdmin />
           </TabsContent>
         </Tabs>
 
