@@ -1280,29 +1280,46 @@ const DemoSettings = () => {
           isDemo={true}
           onDemoImport={(games) => {
             games.forEach((game) => {
+              // Parse mechanics array if provided as string array from CSV
+              const mechanicsArray = Array.isArray(game.mechanics)
+                ? game.mechanics.map((m: string | { id: string; name: string }) =>
+                    typeof m === "string" ? { id: crypto.randomUUID(), name: m } : m
+                  )
+                : [];
+
               addDemoGame({
                 title: game.title,
                 description: game.description || `Imported via bulk import`,
                 image_url: game.image_url || `https://picsum.photos/seed/${game.title.toLowerCase().replace(/\s+/g, "")}/400/400`,
-                difficulty: "3 - Medium",
+                difficulty: game.difficulty || "3 - Medium",
                 game_type: game.game_type || "Board Game",
-                play_time: "45-60 Minutes",
-                min_players: 2,
-                max_players: 4,
-                suggested_age: "10+",
-                is_coming_soon: false,
-                is_for_sale: false,
-                sale_price: null,
-                sale_condition: null,
-                is_expansion: false,
-                parent_game_id: null,
+                play_time: game.play_time || "45-60 Minutes",
+                min_players: game.min_players ?? 2,
+                max_players: game.max_players ?? 4,
+                suggested_age: game.suggested_age || "10+",
+                // Preserve CSV values for status fields
+                is_coming_soon: game.is_coming_soon === true,
+                is_for_sale: game.is_for_sale === true,
+                sale_price: game.sale_price ?? null,
+                sale_condition: game.sale_condition || null,
+                is_expansion: game.is_expansion === true,
+                parent_game_id: game.parent_game_id || null,
+                in_base_game_box: game.in_base_game_box === true,
                 location_room: game.location_room || null,
                 location_shelf: game.location_shelf || null,
                 location_misc: game.location_misc || null,
                 bgg_url: game.bgg_url || null,
                 bgg_id: game.bgg_id || null,
-                mechanics: [],
-                publisher: null,
+                sleeved: game.sleeved === true,
+                upgraded_components: game.upgraded_components === true,
+                crowdfunded: game.crowdfunded === true,
+                inserts: game.inserts === true,
+                mechanics: mechanicsArray,
+                publisher: game.publisher
+                  ? typeof game.publisher === "string"
+                    ? { id: crypto.randomUUID(), name: game.publisher }
+                    : game.publisher
+                  : null,
               });
             });
           }}
