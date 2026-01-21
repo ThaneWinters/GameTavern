@@ -1,37 +1,31 @@
-# Cloudron Dockerfile for Game Haven
-# This builds a self-contained app for Cloudron deployment
+# Game Haven - Cloudron Deployment
+# Single-stage build optimized for Cloudron
 
 FROM cloudron/base:4.2.0@sha256:46da2fffb36353ef714f97ae8e962bd2c212ca091108d768ba473078319a47f4
 
-# Install Node.js 20
+# Install Node.js 20 and nginx
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs && \
-    npm install -g npm@latest
-
-# Install nginx
-RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
+    apt-get install -y nodejs nginx && \
+    npm install -g npm@latest && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy package files
+# Copy and install dependencies
 COPY package*.json ./
+RUN npm ci
 
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy source code
+# Copy source and build
 COPY . .
-
-# Build the app (env vars injected at runtime via start.sh)
 RUN npm run build
 
-# Copy Cloudron-specific files
-COPY deploy/cloudron/start.sh /app/start.sh
+# Setup nginx and startup
 COPY deploy/cloudron/nginx.conf /etc/nginx/sites-available/default
+COPY deploy/cloudron/start.sh /app/start.sh
+RUN chmod +x /app/start.sh && \
+    rm -f /etc/nginx/sites-enabled/default && \
+    ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
-RUN chmod +x /app/start.sh
-
-# Cloudron uses /app/data for persistent storage
-RUN mkdir -p /app/data
+EXPOSE 80
 
 CMD ["/app/start.sh"]

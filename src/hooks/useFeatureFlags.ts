@@ -1,18 +1,14 @@
 import { useMemo } from "react";
 import { useSiteSettings } from "./useSiteSettings";
 import { useDemoMode } from "@/contexts/DemoContext";
+import { getRuntimeFeatureFlag } from "@/config/runtime";
 
 /**
  * Feature Flags System
  * 
- * Priority: ENV VARS (deploy-time) → Admin Settings (runtime) → Defaults
+ * Priority: Runtime Config (Cloudron) → ENV VARS (Vite) → Admin Settings → Defaults
  * 
- * ENV VARS (set at deploy time):
- * - VITE_FEATURE_PLAY_LOGS=false → disables at deploy time
- * - VITE_FEATURE_WISHLIST=false → disables at deploy time
- * - etc.
- * 
- * Admin can override at runtime via site_settings unless ENV explicitly set to "false"
+ * Supports both Cloudron (window.__RUNTIME_CONFIG__) and Lovable/Vite (import.meta.env)
  */
 
 export interface FeatureFlags {
@@ -34,33 +30,38 @@ const DEFAULT_FLAGS: FeatureFlags = {
   demoMode: true,
 };
 
-// Get env var value, returns undefined if not set
-function getEnvFlag(key: string): boolean | undefined {
-  const value = import.meta.env[key];
-  if (value === undefined || value === "") return undefined;
-  return value === "true";
+// Get flag from runtime config (Cloudron) or env var (Vite)
+function getConfigFlag(runtimeKey: 'PLAY_LOGS' | 'WISHLIST' | 'FOR_SALE' | 'MESSAGING' | 'COMING_SOON' | 'DEMO_MODE', envKey: string): boolean | undefined {
+  // Check runtime config first (Cloudron)
+  const runtimeValue = getRuntimeFeatureFlag(runtimeKey);
+  if (runtimeValue !== undefined) return runtimeValue;
+  
+  // Fall back to Vite env
+  const envValue = import.meta.env[envKey];
+  if (envValue === undefined || envValue === "") return undefined;
+  return envValue === "true";
 }
 
-// Get env-level overrides (deploy-time settings)
-function getEnvFlags(): Partial<FeatureFlags> {
+// Get config-level overrides (runtime or deploy-time)
+function getConfigFlags(): Partial<FeatureFlags> {
   const flags: Partial<FeatureFlags> = {};
   
-  const playLogs = getEnvFlag("VITE_FEATURE_PLAY_LOGS");
+  const playLogs = getConfigFlag("PLAY_LOGS", "VITE_FEATURE_PLAY_LOGS");
   if (playLogs !== undefined) flags.playLogs = playLogs;
   
-  const wishlist = getEnvFlag("VITE_FEATURE_WISHLIST");
+  const wishlist = getConfigFlag("WISHLIST", "VITE_FEATURE_WISHLIST");
   if (wishlist !== undefined) flags.wishlist = wishlist;
   
-  const forSale = getEnvFlag("VITE_FEATURE_FOR_SALE");
+  const forSale = getConfigFlag("FOR_SALE", "VITE_FEATURE_FOR_SALE");
   if (forSale !== undefined) flags.forSale = forSale;
   
-  const messaging = getEnvFlag("VITE_FEATURE_MESSAGING");
+  const messaging = getConfigFlag("MESSAGING", "VITE_FEATURE_MESSAGING");
   if (messaging !== undefined) flags.messaging = messaging;
   
-  const comingSoon = getEnvFlag("VITE_FEATURE_COMING_SOON");
+  const comingSoon = getConfigFlag("COMING_SOON", "VITE_FEATURE_COMING_SOON");
   if (comingSoon !== undefined) flags.comingSoon = comingSoon;
   
-  const demoMode = getEnvFlag("VITE_FEATURE_DEMO_MODE");
+  const demoMode = getConfigFlag("DEMO_MODE", "VITE_FEATURE_DEMO_MODE");
   if (demoMode !== undefined) flags.demoMode = demoMode;
   
   return flags;
@@ -100,9 +101,9 @@ export function useFeatureFlags(): FeatureFlags & { isLoading: boolean } {
       if (dbDemoMode !== undefined) result.demoMode = dbDemoMode === "true";
     }
     
-    // Apply ENV overrides last (they take precedence)
-    const envFlags = getEnvFlags();
-    Object.assign(result, envFlags);
+    // Apply config overrides last (they take precedence)
+    const configFlags = getConfigFlags();
+    Object.assign(result, configFlags);
     
     return result;
   }, [siteSettings, isDemoMode, demoFeatureFlags]);

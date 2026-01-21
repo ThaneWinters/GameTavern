@@ -1,28 +1,39 @@
 /**
  * Site configuration - all branding can be customized via environment variables
  * 
- * Environment Variables:
- * - VITE_SITE_NAME: The name of the site (default: "My Game Library")
- * - VITE_SITE_DESCRIPTION: Meta description for SEO (default: "Browse and discover our collection of board games, card games, and more.")
- * - VITE_SITE_AUTHOR: Author meta tag (default: same as VITE_SITE_NAME)
- * - VITE_TWITTER_HANDLE: Twitter handle for social cards (optional)
+ * Supports two deployment modes:
+ * 1. Lovable/Vite: Uses VITE_* environment variables (build-time)
+ * 2. Cloudron: Uses window.__RUNTIME_CONFIG__ (injected at container start)
+ * 
+ * Priority: Runtime Config → Vite Env → Defaults
  */
+
+import { getConfig } from './runtime';
 
 export const siteConfig = {
   /** The main name of the site, used in header, title, etc. */
-  name: import.meta.env.VITE_SITE_NAME || "My Game Library",
+  get name(): string {
+    return getConfig('SITE_NAME', 'VITE_SITE_NAME', 'My Game Library');
+  },
   
   /** Description for SEO meta tags */
-  description: import.meta.env.VITE_SITE_DESCRIPTION || 
-    "Browse and discover our collection of board games, card games, and more.",
+  get description(): string {
+    return getConfig(
+      'SITE_DESCRIPTION', 
+      'VITE_SITE_DESCRIPTION', 
+      'Browse and discover our collection of board games, card games, and more.'
+    );
+  },
   
   /** Author name for meta tags */
-  get author() {
-    return import.meta.env.VITE_SITE_AUTHOR || this.name;
+  get author(): string {
+    return getConfig('SITE_AUTHOR', 'VITE_SITE_AUTHOR', '') || this.name;
   },
   
   /** Twitter handle for social cards (without @) */
-  twitterHandle: import.meta.env.VITE_TWITTER_HANDLE || "",
+  get twitterHandle(): string {
+    return import.meta.env.VITE_TWITTER_HANDLE || '';
+  },
   
   /** Default collection title when no filter is active */
   collectionTitle: "Game Collection",

@@ -2,7 +2,7 @@
   "id": "dev.gamehaven.cloudronapp",
   "title": "Game Haven",
   "author": "Game Haven",
-  "description": "A beautiful board game collection manager with play tracking, wishlists, and more.",
+  "description": "Board game collection manager with play tracking, wishlists, and messaging.",
   "tagline": "Board Game Collection Manager",
   "version": "1.0.0",
   "healthCheckPath": "/health",
@@ -11,19 +11,8 @@
   "website": "https://github.com/ThaneWinters/tzolakgamehaven",
   "contactEmail": "support@example.com",
   "icon": "file://logo.png",
-  "tags": [
-    "games",
-    "collection",
-    "boardgames"
-  ],
-  "mediaLinks": [],
-  "memoryLimit": 512000000,
-  "addons": {
-    "localstorage": {},
-    "postgresql": {}
-  },
+  "tags": ["games", "boardgames", "collection"],
+  "memoryLimit": 256000000,
   "optionalSso": true,
-  "configurePath": "/settings",
-  "postInstallMessage": "Game Haven is ready! Create your first admin account by signing up, then use the Cloudron terminal to grant admin access.",
   "minBoxVersion": "7.0.0"
 }

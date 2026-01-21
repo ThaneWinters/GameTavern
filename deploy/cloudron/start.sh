@@ -1,42 +1,40 @@
 #!/bin/bash
 set -e
 
-# Cloudron provides these environment variables:
-# - CLOUDRON_POSTGRESQL_URL: Full postgres connection string
-# - CLOUDRON_APP_DOMAIN: The app's domain
-# - CLOUDRON_APP_ORIGIN: Full URL (https://domain)
-# - CLOUDRON_MAIL_*: SMTP configuration
+echo "==> Starting Game Haven"
 
-echo "==> Starting Game Haven on Cloudron"
+# Inject runtime config into the built app
+# This replaces placeholder values in index.html with actual environment variables
+CONFIG_FILE="/app/dist/runtime-config.js"
 
-# Create runtime config from Cloudron environment
-cat > /app/dist/config.json << EOF
-{
-  "supabaseUrl": "${SUPABASE_URL:-}",
-  "supabaseAnonKey": "${SUPABASE_ANON_KEY:-}",
-  "siteName": "${SITE_NAME:-Game Haven}",
-  "siteDescription": "${SITE_DESCRIPTION:-Browse and discover our collection of board games}",
-  "features": {
-    "playLogs": ${FEATURE_PLAY_LOGS:-true},
-    "wishlist": ${FEATURE_WISHLIST:-true},
-    "forSale": ${FEATURE_FOR_SALE:-true},
-    "messaging": ${FEATURE_MESSAGING:-true},
-    "comingSoon": ${FEATURE_COMING_SOON:-true},
-    "demoMode": ${FEATURE_DEMO_MODE:-false}
+cat > "$CONFIG_FILE" << EOF
+window.__RUNTIME_CONFIG__ = {
+  SUPABASE_URL: "${SUPABASE_URL:-}",
+  SUPABASE_ANON_KEY: "${SUPABASE_ANON_KEY:-}",
+  SITE_NAME: "${SITE_NAME:-Game Haven}",
+  SITE_DESCRIPTION: "${SITE_DESCRIPTION:-Browse and discover our collection of board games}",
+  SITE_AUTHOR: "${SITE_AUTHOR:-Game Haven}",
+  FEATURES: {
+    PLAY_LOGS: ${FEATURE_PLAY_LOGS:-true},
+    WISHLIST: ${FEATURE_WISHLIST:-true},
+    FOR_SALE: ${FEATURE_FOR_SALE:-true},
+    MESSAGING: ${FEATURE_MESSAGING:-true},
+    COMING_SOON: ${FEATURE_COMING_SOON:-true},
+    DEMO_MODE: ${FEATURE_DEMO_MODE:-false}
   }
-}
+};
 EOF
 
-# If using Cloudron's PostgreSQL, we need external Supabase
-# Output helpful message
-if [ -z "$SUPABASE_URL" ]; then
-    echo "==> WARNING: SUPABASE_URL not configured"
-    echo "==> Game Haven requires a Supabase backend. Options:"
-    echo "    1. Use Supabase Cloud (free tier available): https://supabase.com"
-    echo "    2. Self-host Supabase separately"
-    echo "    Configure via Cloudron's environment variables."
+# Inject the runtime config script into index.html
+sed -i 's|</head>|<script src="/runtime-config.js"></script></head>|' /app/dist/index.html
+
+# Validate required config
+if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+    echo "==> WARNING: Supabase not configured!"
+    echo "    Set SUPABASE_URL and SUPABASE_ANON_KEY in Cloudron environment variables."
+    echo "    Get these from https://supabase.com or your Lovable Cloud project."
 fi
 
-# Start nginx
+echo "==> Config: $SITE_NAME"
 echo "==> Starting nginx..."
 exec nginx -g "daemon off;"
