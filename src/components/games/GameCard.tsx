@@ -48,82 +48,88 @@ export function GameCard({ game, priority = false }: GameCardProps) {
 
   return (
     <div>
-      <Link to={`${basePath}/${game.slug || game.id}`}>
-        <Card className="group overflow-hidden card-elevated card-hover bg-card border-border">
-          {/* Image */}
-          <div className="relative aspect-square overflow-hidden bg-muted">
-            {game.image_url && !imageError ? (
-              <>
-                <img
-                  src={getImageSrc()}
-                  alt={game.title}
-                  loading={priority ? "eager" : "lazy"}
-                  decoding={priority ? "sync" : "async"}
-                  fetchPriority={priority ? "high" : "auto"}
-                  referrerPolicy="no-referrer"
-                  onError={handleImageError}
-                  className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
-                />
-                <span className="sr-only">{game.title}</span>
-              </>
-            ) : (
-              <div className="flex h-full items-center justify-center bg-muted">
-                <span className="text-4xl text-muted-foreground/50">🎲</span>
+      <div className="relative">
+        <Link to={`${basePath}/${game.slug || game.id}`}>
+          <Card className="group overflow-hidden card-elevated card-hover bg-card border-border">
+            {/* Image */}
+            <div className="relative aspect-square overflow-hidden bg-muted">
+              {game.image_url && !imageError ? (
+                <>
+                  <img
+                    src={getImageSrc()}
+                    alt={game.title}
+                    loading={priority ? "eager" : "lazy"}
+                    decoding={priority ? "sync" : "async"}
+                    fetchPriority={priority ? "high" : "auto"}
+                    referrerPolicy="no-referrer"
+                    onError={handleImageError}
+                    className="h-full w-full object-contain"
+                  />
+                  <span className="sr-only">{game.title}</span>
+                </>
+              ) : (
+                <div className="flex h-full items-center justify-center bg-muted">
+                  <span className="text-4xl text-muted-foreground/50">🎲</span>
+                </div>
+              )}
+            </div>
+
+            <CardContent className="p-4">
+              {/* Title */}
+              <h3 className="font-display text-lg font-semibold text-foreground line-clamp-2 mb-3 group-hover:text-primary transition-colors">
+                {game.title}
+              </h3>
+
+              <hr className="border-border mb-3" />
+
+              {/* Quick Info */}
+              <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                <span className="flex items-center gap-1">
+                  <Users className="h-4 w-4" />
+                  {playerRange}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  {game.play_time.replace(' Minutes', 'm').replace(' Hours', 'h')}
+                </span>
               </div>
-            )}
-            {/* Wishlist Button */}
-            {wishlist && (
-              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <WishlistButton gameId={game.id} className="bg-background/80 backdrop-blur-sm hover:bg-background" />
+
+              <hr className="border-border mb-3" />
+
+              {/* Tags */}
+              <div className="flex flex-wrap gap-1.5">
+                {forSale && game.is_for_sale && (
+                  <Badge className="text-xs bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30">
+                    <DollarSign className="h-3 w-3 mr-0.5" />
+                    {game.sale_price ? `$${game.sale_price}` : 'For Sale'}
+                  </Badge>
+                )}
+                {comingSoon && game.is_coming_soon && (
+                  <Badge className="text-xs bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30">
+                    Coming Soon
+                  </Badge>
+                )}
+                <Badge variant="secondary" className="text-xs">
+                  {game.difficulty}
+                </Badge>
+                <Badge variant="outline" className="text-xs">
+                  {game.game_type}
+                </Badge>
               </div>
-            )}
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Wishlist Button - Outside Link to prevent click conflicts */}
+        {wishlist && (
+          <div className="absolute top-2 right-2 z-10">
+            <WishlistButton 
+              gameId={game.id} 
+              className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-sm" 
+            />
           </div>
-
-          <CardContent className="p-4">
-            {/* Title */}
-            <h3 className="font-display text-lg font-semibold text-foreground line-clamp-2 mb-3 group-hover:text-primary transition-colors">
-              {game.title}
-            </h3>
-
-            <hr className="border-border mb-3" />
-
-            {/* Quick Info */}
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-              <span className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                {playerRange}
-              </span>
-              <span className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                {game.play_time.replace(' Minutes', 'm').replace(' Hours', 'h')}
-              </span>
-            </div>
-
-            <hr className="border-border mb-3" />
-
-            {/* Tags */}
-            <div className="flex flex-wrap gap-1.5">
-              {forSale && game.is_for_sale && (
-                <Badge className="text-xs bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30">
-                  <DollarSign className="h-3 w-3 mr-0.5" />
-                  {game.sale_price ? `$${game.sale_price}` : 'For Sale'}
-                </Badge>
-              )}
-              {comingSoon && game.is_coming_soon && (
-                <Badge className="text-xs bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30">
-                  Coming Soon
-                </Badge>
-              )}
-              <Badge variant="secondary" className="text-xs">
-                {game.difficulty}
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                {game.game_type}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-      </Link>
+        )}
+      </div>
 
       {/* Expansions nested under the card */}
       {hasExpansions && (
