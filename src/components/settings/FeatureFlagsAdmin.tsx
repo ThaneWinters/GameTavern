@@ -158,9 +158,12 @@ export function FeatureFlagsAdmin({ currentFlags }: FeatureFlagsAdminProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {(Object.keys(localFlags) as Array<keyof FeatureFlags>).map((flagKey) => {
+        {(Object.keys(FEATURE_FLAG_ICONS) as Array<keyof FeatureFlags>).map((flagKey) => {
           const Icon = FEATURE_FLAG_ICONS[flagKey];
           const locked = isEnvLocked(flagKey);
+          
+          // Skip if flag doesn't exist in localFlags
+          if (localFlags[flagKey] === undefined) return null;
           
           return (
             <div
@@ -169,7 +172,7 @@ export function FeatureFlagsAdmin({ currentFlags }: FeatureFlagsAdminProps) {
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-muted rounded-md">
-                  <Icon className="h-5 w-5 text-muted-foreground" />
+                  {Icon && <Icon className="h-5 w-5 text-muted-foreground" />}
                 </div>
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
