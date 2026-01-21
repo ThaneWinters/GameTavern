@@ -280,6 +280,7 @@ const DemoSettings = () => {
   const [importUpgradedComponents, setImportUpgradedComponents] = useState(false);
   const [importCrowdfunded, setImportCrowdfunded] = useState(false);
   const [importInserts, setImportInserts] = useState(false);
+  const [importInBaseGameBox, setImportInBaseGameBox] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
   // Demo mechanics and publishers derived from games
   // Dedupe by name since imported games may have different IDs for the same mechanic
@@ -435,6 +436,7 @@ const DemoSettings = () => {
       sale_condition: importAsForSale ? importSaleCondition : null,
       is_expansion: importAsExpansion,
       parent_game_id: importAsExpansion ? importParentGameId : null,
+      in_base_game_box: importAsExpansion ? importInBaseGameBox : false,
       location_room: importLocationRoom.trim() || null,
       location_shelf: importLocationShelf.trim() || null,
       location_misc: importLocationMisc.trim() || null,
@@ -484,6 +486,7 @@ const DemoSettings = () => {
     setImportUpgradedComponents(false);
     setImportCrowdfunded(false);
     setImportInserts(false);
+    setImportInBaseGameBox(false);
     setIsImporting(false);
   };
 
@@ -879,7 +882,10 @@ const DemoSettings = () => {
                           checked={importAsExpansion}
                           onCheckedChange={(checked) => {
                             setImportAsExpansion(checked === true);
-                            if (!checked) setImportParentGameId(null);
+                            if (!checked) {
+                              setImportParentGameId(null);
+                              setImportInBaseGameBox(false);
+                            }
                           }}
                           disabled={isImporting}
                         />
@@ -893,22 +899,35 @@ const DemoSettings = () => {
                         </div>
                       </div>
                       {importAsExpansion && (
-                        <div className="p-3 rounded-lg border border-purple-500/20 bg-purple-500/5">
-                          <Label className="text-xs">Parent Game</Label>
-                          <Select
-                            value={importParentGameId || ""}
-                            onValueChange={setImportParentGameId}
-                            disabled={isImporting}
-                          >
-                            <SelectTrigger className="mt-1 h-8">
-                              <SelectValue placeholder="Select base game..." />
-                            </SelectTrigger>
-                            <SelectContent className="bg-popover z-50">
-                              {parentGameOptions.map((g) => (
-                                <SelectItem key={g.id} value={g.id}>{g.title}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                        <div className="p-3 rounded-lg border border-purple-500/20 bg-purple-500/5 space-y-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Parent Game</Label>
+                            <Select
+                              value={importParentGameId || ""}
+                              onValueChange={setImportParentGameId}
+                              disabled={isImporting}
+                            >
+                              <SelectTrigger className="mt-1 h-8">
+                                <SelectValue placeholder="Select base game..." />
+                              </SelectTrigger>
+                              <SelectContent className="bg-popover z-50">
+                                {parentGameOptions.map((g) => (
+                                  <SelectItem key={g.id} value={g.id}>{g.title}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <Checkbox
+                              id="import-in-base-game-box"
+                              checked={importInBaseGameBox}
+                              onCheckedChange={(checked) => setImportInBaseGameBox(checked === true)}
+                              disabled={isImporting}
+                            />
+                            <label htmlFor="import-in-base-game-box" className="text-sm font-medium cursor-pointer">
+                              Stored in base game box
+                            </label>
+                          </div>
                         </div>
                       )}
                     </div>
