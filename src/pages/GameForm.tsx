@@ -5,7 +5,7 @@ import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/useAuth";
 import { 
   useGame, 
-  useGames,
+  useAllGamesFlat,
   useMechanics, 
   usePublishers, 
   useCreateGame, 
@@ -46,7 +46,7 @@ const GameForm = () => {
   const { data: existingGame, isLoading: gameLoading } = useGame(id);
   const { data: mechanics = [] } = useMechanics();
   const { data: publishers = [] } = usePublishers();
-  const { data: allGames = [] } = useGames();
+  const { data: baseGames = [] } = useAllGamesFlat();
   const createGame = useCreateGame();
   const updateGame = useUpdateGame();
   const createMechanic = useCreateMechanic();
@@ -89,7 +89,7 @@ const GameForm = () => {
   const [youtubeVideos, setYoutubeVideos] = useState<string[]>([]);
 
   // Filter out current game from parent options (can't be its own parent)
-  const parentGameOptions = allGames.filter((g) => g.id !== id);
+  const parentGameOptions = baseGames.filter((g) => g.id !== id);
 
   // Load existing game data
   useEffect(() => {

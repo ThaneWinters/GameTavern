@@ -97,6 +97,44 @@ export function useGames(enabled = true) {
   });
 }
 
+// Hook for getting all games as a flat list (for parent game selection dropdowns)
+export function useAllGamesFlat(enabled = true) {
+  const { isAdmin } = useAuth();
+
+  return useQuery({
+    queryKey: ["games-flat", isAdmin],
+    queryFn: async (): Promise<{ id: string; title: string; is_expansion: boolean }[]> => {
+      // For parent game selection, we only need id and title of non-expansion games
+      if (isAdmin) {
+        const { data: games, error } = await supabase
+          .from("games")
+          .select("id, title, is_expansion")
+          .eq("is_expansion", false)
+          .order("title");
+
+        if (error) throw error;
+        return games || [];
+      }
+
+      // Public users - use the public view
+      const { data: games, error } = await supabase
+        .from("games_public")
+        .select("id, title, is_expansion")
+        .eq("is_expansion", false)
+        .order("title");
+
+      if (error) throw error;
+      return (games || []).map(g => ({
+        id: g.id!,
+        title: g.title!,
+        is_expansion: g.is_expansion === true,
+      }));
+    },
+    enabled,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+}
+
 type AdminDataRow = {
   id: string;
   game_id: string;
@@ -320,6 +358,7 @@ export function useCreateGame() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["games"] });
+      queryClient.invalidateQueries({ queryKey: ["games-flat"] });
     },
   });
 }
@@ -375,6 +414,7 @@ export function useUpdateGame() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["games"] });
+      queryClient.invalidateQueries({ queryKey: ["games-flat"] });
     },
   });
 }
@@ -389,6 +429,7 @@ export function useDeleteGame() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["games"] });
+      queryClient.invalidateQueries({ queryKey: ["games-flat"] });
     },
   });
 }

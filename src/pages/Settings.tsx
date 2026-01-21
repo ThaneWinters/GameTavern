@@ -2283,6 +2283,7 @@ const Settings = () => {
           onOpenChange={setShowBulkImport}
           onImportComplete={() => {
             queryClient.invalidateQueries({ queryKey: ["games"] });
+            queryClient.invalidateQueries({ queryKey: ["games-flat"] });
           }}
         />
       </div>
