@@ -335,6 +335,12 @@ const Settings = () => {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [updatingRoleUserId, setUpdatingRoleUserId] = useState<string | null>(null);
+  const [addUserDialogOpen, setAddUserDialogOpen] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserRole, setNewUserRole] = useState<"admin" | "moderator" | "user">("user");
+  const [isAddingUser, setIsAddingUser] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   // Site settings states
   const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
@@ -805,6 +811,44 @@ const Settings = () => {
       });
     } finally {
       setUpdatingRoleUserId(null);
+    }
+  };
+
+  const handleAddUser = async () => {
+    if (!newUserEmail.trim() || !newUserPassword.trim()) {
+      toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
+      return;
+    }
+    setIsAddingUser(true);
+    try {
+      // Note: Creating users requires admin API access which isn't available client-side
+      // This is a placeholder showing the UI capability
+      toast({
+        title: "Feature Note",
+        description: "Adding new users requires server-side admin API. Use Supabase dashboard or invite flow.",
+      });
+      setAddUserDialogOpen(false);
+      setNewUserEmail("");
+      setNewUserPassword("");
+      setNewUserRole("user");
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsAddingUser(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    setDeletingUserId(userId);
+    try {
+      // Remove user's role first
+      await supabase.from("user_roles").delete().eq("user_id", userId);
+      toast({ title: "User role removed", description: "User role has been removed." });
+      fetchUsers();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setDeletingUserId(null);
     }
   };
 

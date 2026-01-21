@@ -20,7 +20,13 @@ import {
   DollarSign,
   FileSpreadsheet,
   Download,
-  ToggleRight
+  ToggleRight,
+  User,
+  Users,
+  Heart,
+  Globe,
+  Mail,
+  Lock
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { useDemoMode } from "@/contexts/DemoContext";
@@ -29,6 +35,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BulkImportDialog } from "@/components/games/BulkImportDialog";
 import { DemoFeatureFlagsAdmin } from "@/components/settings/DemoFeatureFlagsAdmin";
+import { DemoWishlistAdmin } from "@/components/settings/DemoWishlistAdmin";
+import { DemoSiteSettings } from "@/components/settings/DemoSiteSettings";
+import { DemoThemeCustomizer } from "@/components/settings/DemoThemeCustomizer";
+import { DemoUserManagement } from "@/components/settings/DemoUserManagement";
 import { 
   Table, 
   TableBody, 
@@ -636,28 +646,138 @@ const DemoSettings = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="collection" className="space-y-6">
-          <TabsList className="flex flex-wrap h-auto gap-1">
-            <TabsTrigger value="collection" className="flex items-center gap-2">
-              <SettingsIcon className="h-4 w-4" />
-              Game Collection
+        <Tabs defaultValue="profile" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="profile" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Profile
             </TabsTrigger>
-            <TabsTrigger value="mechanics" className="flex items-center gap-2">
+            <TabsTrigger value="games" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Games
+            </TabsTrigger>
+            <TabsTrigger value="categories" className="flex items-center gap-2">
               <Tag className="h-4 w-4" />
-              Mechanics
+              Categories
             </TabsTrigger>
-            <TabsTrigger value="publishers" className="flex items-center gap-2">
-              <Building className="h-4 w-4" />
-              Publishers
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="wishlist" className="flex items-center gap-2">
+              <Heart className="h-4 w-4" />
+              Wishlist
             </TabsTrigger>
             <TabsTrigger value="features" className="flex items-center gap-2">
               <ToggleRight className="h-4 w-4" />
               Features
             </TabsTrigger>
+            <TabsTrigger value="site" className="flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              Site
+            </TabsTrigger>
           </TabsList>
 
-          {/* Game Collection Tab */}
-          <TabsContent value="collection" className="space-y-6">
+          {/* Profile Tab */}
+          <TabsContent value="profile" className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Account Info */}
+              <Card className="card-elevated">
+                <CardHeader>
+                  <CardTitle className="font-display flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Account Information
+                  </CardTitle>
+                  <CardDescription>
+                    Your demo account details
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between py-2 border-b border-border">
+                    <span className="text-muted-foreground">Email</span>
+                    <span className="font-medium">admin@demo.com</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-border">
+                    <span className="text-muted-foreground">Role</span>
+                    <span className="font-medium">Admin</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-muted-foreground">Member since</span>
+                    <span className="font-medium">Demo Session</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Update Email (Demo) */}
+              <Card className="card-elevated">
+                <CardHeader>
+                  <CardTitle className="font-display flex items-center gap-2">
+                    <Mail className="h-5 w-5" />
+                    Update Email
+                  </CardTitle>
+                  <CardDescription>
+                    Change your email address (demo only)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={(e) => { e.preventDefault(); toast({ title: "Email updated (Demo)", description: "In the live version, this would update your email." }); }} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="new-email">New Email Address</Label>
+                      <Input
+                        id="new-email"
+                        type="email"
+                        placeholder="newemail@example.com"
+                      />
+                    </div>
+                    <Button type="submit" className="w-full">
+                      Update Email
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+
+              {/* Update Password (Demo) */}
+              <Card className="card-elevated md:col-span-2">
+                <CardHeader>
+                  <CardTitle className="font-display flex items-center gap-2">
+                    <Lock className="h-5 w-5" />
+                    Change Password
+                  </CardTitle>
+                  <CardDescription>
+                    Update your account password (demo only)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={(e) => { e.preventDefault(); toast({ title: "Password updated (Demo)", description: "In the live version, this would update your password." }); }} className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="new-password">New Password</Label>
+                        <Input
+                          id="new-password"
+                          type="password"
+                          placeholder="••••••••"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm-password">Confirm New Password</Label>
+                        <Input
+                          id="confirm-password"
+                          type="password"
+                          placeholder="••••••••"
+                        />
+                      </div>
+                    </div>
+                    <Button type="submit">
+                      Change Password
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Games Tab */}
+          <TabsContent value="games" className="space-y-6">
             <div className="grid gap-6 lg:grid-cols-3">
               {/* Import Card */}
               <Card className="lg:col-span-1 card-elevated">
@@ -1021,63 +1141,125 @@ const DemoSettings = () => {
             </Card>
           </TabsContent>
 
-          {/* Mechanics Tab */}
-          <TabsContent value="mechanics" className="space-y-6">
+          {/* Categories Tab */}
+          <TabsContent value="categories" className="space-y-6">
+            {/* Fixed Filter Groups Info */}
             <Card className="card-elevated">
               <CardHeader>
-                <CardTitle>Game Mechanics</CardTitle>
+                <CardTitle className="font-display">Main Filter Categories</CardTitle>
                 <CardDescription>
-                  {mechanics.length} mechanics in demo data
+                  These are the primary categories games are sorted/filtered by in the sidebar. These options are fixed.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {mechanics.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    No mechanics found in demo data.
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {mechanics.map((m) => (
-                      <Badge key={m.id} variant="secondary" className="text-sm py-1 px-3">
-                        {m.name}
-                      </Badge>
-                    ))}
+                <div className="grid gap-6 md:grid-cols-3">
+                  <div>
+                    <h4 className="font-medium mb-2">Difficulty</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {["1 - Light", "2 - Medium Light", "3 - Medium", "4 - Medium Heavy", "5 - Heavy"].map((d) => (
+                        <Badge key={d} variant="outline" className="text-xs">{d}</Badge>
+                      ))}
+                    </div>
                   </div>
-                )}
+                  <div>
+                    <h4 className="font-medium mb-2">Type</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {["Board Game", "Card Game", "Dice Game", "Party Game", "War Game", "Miniatures", "RPG", "Other"].map((t) => (
+                        <Badge key={t} variant="outline" className="text-xs">{t}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-medium mb-2">Play Time</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {["0-15 Minutes", "15-30 Minutes", "30-45 Minutes", "45-60 Minutes", "60+ Minutes", "2+ Hours", "3+ Hours"].map((p) => (
+                        <Badge key={p} variant="outline" className="text-xs">{p}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
+
+            {/* Editable Categories */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Mechanics Card */}
+              <Card className="card-elevated">
+                <CardHeader>
+                  <CardTitle className="font-display flex items-center gap-2">
+                    <Tag className="h-5 w-5" />
+                    Game Mechanics
+                  </CardTitle>
+                  <CardDescription>
+                    {mechanics.length} mechanics in demo data
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {mechanics.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">
+                      No mechanics found in demo data. Import games to populate.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {mechanics.map((m) => (
+                        <Badge key={m.id} variant="secondary" className="text-sm py-1 px-3">
+                          {m.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Publishers Card */}
+              <Card className="card-elevated">
+                <CardHeader>
+                  <CardTitle className="font-display flex items-center gap-2">
+                    <Building className="h-5 w-5" />
+                    Publishers
+                  </CardTitle>
+                  <CardDescription>
+                    {publishers.length} publishers in demo data
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {publishers.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">
+                      No publishers found in demo data. Import games to populate.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {publishers.map((p) => (
+                        <Badge key={p.id} variant="secondary" className="text-sm py-1 px-3">
+                          {p.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
-          {/* Publishers Tab */}
-          <TabsContent value="publishers" className="space-y-6">
-            <Card className="card-elevated">
-              <CardHeader>
-                <CardTitle>Publishers</CardTitle>
-                <CardDescription>
-                  {publishers.length} publishers in demo data
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {publishers.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    No publishers found in demo data.
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {publishers.map((p) => (
-                      <Badge key={p.id} variant="secondary" className="text-sm py-1 px-3">
-                        {p.name}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          {/* Users Tab */}
+          <TabsContent value="users" className="space-y-6">
+            <DemoUserManagement />
+          </TabsContent>
+
+          {/* Wishlist Tab */}
+          <TabsContent value="wishlist" className="space-y-6">
+            <DemoWishlistAdmin />
           </TabsContent>
 
           {/* Features Tab */}
           <TabsContent value="features" className="space-y-6">
             <DemoFeatureFlagsAdmin />
+          </TabsContent>
+
+          {/* Site Tab */}
+          <TabsContent value="site" className="space-y-6">
+            <DemoSiteSettings />
+            <DemoThemeCustomizer />
           </TabsContent>
         </Tabs>
 
