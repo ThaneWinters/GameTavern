@@ -24,12 +24,14 @@ import {
   DollarSign,
   FileSpreadsheet,
   Download,
-  Heart
+  Heart,
+  ToggleRight
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/useAuth";
 import { useGames, useDeleteGame, useMechanics, usePublishers, useCreateMechanic, useCreatePublisher } from "@/hooks/useGames";
 import { useUnreadMessageCount } from "@/hooks/useMessages";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -76,6 +78,7 @@ import {
 import { ThemeCustomizer } from "@/components/settings/ThemeCustomizer";
 import { BulkImportDialog } from "@/components/games/BulkImportDialog";
 import { WishlistAdmin } from "@/components/settings/WishlistAdmin";
+import { FeatureFlagsAdmin } from "@/components/settings/FeatureFlagsAdmin";
 import { SALE_CONDITION_OPTIONS, type SaleCondition, type GameWithRelations } from "@/types/game";
 
 type UserWithRole = {
@@ -278,6 +281,7 @@ const Settings = () => {
   const { user, isAuthenticated, isAdmin, loading } = useAuth();
   const { toast } = useToast();
   const deleteGame = useDeleteGame();
+  const featureFlags = useFeatureFlags();
   
   // Only fetch games when admin (lazy load for performance)
   const { data: games = [], isLoading: gamesLoading } = useGames(isAdmin);
@@ -933,7 +937,7 @@ const Settings = () => {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className={`grid w-full ${isAdmin ? "grid-cols-6" : "grid-cols-1"}`}>
+          <TabsList className={`grid w-full ${isAdmin ? "grid-cols-7" : "grid-cols-1"}`}>
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="h-4 w-4" />
               Profile
@@ -955,6 +959,10 @@ const Settings = () => {
                 <TabsTrigger value="wishlist" className="flex items-center gap-2">
                   <Heart className="h-4 w-4" />
                   Wishlist
+                </TabsTrigger>
+                <TabsTrigger value="features" className="flex items-center gap-2">
+                  <ToggleRight className="h-4 w-4" />
+                  Features
                 </TabsTrigger>
                 <TabsTrigger value="site" className="flex items-center gap-2">
                   <Globe className="h-4 w-4" />
@@ -1950,6 +1958,13 @@ const Settings = () => {
           {isAdmin && (
             <TabsContent value="wishlist" className="space-y-6">
               <WishlistAdmin />
+            </TabsContent>
+          )}
+
+          {/* Features Tab (Admin Only) */}
+          {isAdmin && (
+            <TabsContent value="features" className="space-y-6">
+              <FeatureFlagsAdmin currentFlags={featureFlags} />
             </TabsContent>
           )}
         </Tabs>
