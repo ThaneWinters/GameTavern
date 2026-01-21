@@ -23,7 +23,8 @@ import {
   MapPin,
   DollarSign,
   FileSpreadsheet,
-  Download
+  Download,
+  Heart
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/useAuth";
@@ -74,6 +75,7 @@ import {
 } from "@/components/ui/select";
 import { ThemeCustomizer } from "@/components/settings/ThemeCustomizer";
 import { BulkImportDialog } from "@/components/games/BulkImportDialog";
+import { WishlistAdmin } from "@/components/settings/WishlistAdmin";
 import { SALE_CONDITION_OPTIONS, type SaleCondition, type GameWithRelations } from "@/types/game";
 
 type UserWithRole = {
@@ -931,7 +933,7 @@ const Settings = () => {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className={`grid w-full ${isAdmin ? "grid-cols-5" : "grid-cols-1"}`}>
+          <TabsList className={`grid w-full ${isAdmin ? "grid-cols-6" : "grid-cols-1"}`}>
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="h-4 w-4" />
               Profile
@@ -949,6 +951,10 @@ const Settings = () => {
                 <TabsTrigger value="users" className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   Users
+                </TabsTrigger>
+                <TabsTrigger value="wishlist" className="flex items-center gap-2">
+                  <Heart className="h-4 w-4" />
+                  Wishlist
                 </TabsTrigger>
                 <TabsTrigger value="site" className="flex items-center gap-2">
                   <Globe className="h-4 w-4" />
@@ -1937,6 +1943,13 @@ const Settings = () => {
 
               {/* Theme Customization Section */}
               <ThemeCustomizer />
+            </TabsContent>
+          )}
+
+          {/* Wishlist Tab (Admin Only) */}
+          {isAdmin && (
+            <TabsContent value="wishlist" className="space-y-6">
+              <WishlistAdmin />
             </TabsContent>
           )}
         </Tabs>
