@@ -14,8 +14,8 @@ This guide walks you through deploying Game Haven on your own Linux server with 
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/game-haven.git
-cd game-haven
+git clone https://github.com/ThaneWinters/tzolakgamehaven.git
+cd tzolakgamehaven
 
 # Make deploy script executable
 chmod +x deploy/deploy.sh

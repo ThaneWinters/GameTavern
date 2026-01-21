@@ -5,8 +5,8 @@ Deploy Game Haven to your own server with our streamlined deployment system.
 ## Quick Start
 
 ```bash
-git clone https://github.com/your-org/game-haven.git
-cd game-haven
+git clone https://github.com/ThaneWinters/tzolakgamehaven.git
+cd tzolakgamehaven
 ./deploy/deploy.sh
 ```
 
@@ -354,7 +354,7 @@ deploy/
 
 ## Getting Help
 
-- [GitHub Issues](https://github.com/your-org/game-haven/issues)
+- [GitHub Issues](https://github.com/ThaneWinters/tzolakgamehaven/issues)
 - [Documentation](https://docs.gamehaven.dev)
 
 ## License

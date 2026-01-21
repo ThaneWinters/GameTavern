@@ -8,7 +8,7 @@
   "healthCheckPath": "/health",
   "httpPort": 80,
   "manifestVersion": 2,
-  "website": "https://github.com/your-org/game-haven",
+  "website": "https://github.com/ThaneWinters/tzolakgamehaven",
   "contactEmail": "support@example.com",
   "icon": "file://logo.png",
   "tags": [
