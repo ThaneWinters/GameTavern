@@ -79,16 +79,22 @@ export function useSiteSettings() {
         return convertDemoSettingsToSiteSettings(siteSettings, themeSettings);
       }
 
-      const records = await pb.collection(Collections.SITE_SETTINGS).getFullList<SiteSetting>();
-      
-      const settings: SiteSettings = {};
-      records.forEach((record) => {
-        settings[record.key as keyof SiteSettings] = record.value || undefined;
-      });
+      try {
+        const records = await pb.collection(Collections.SITE_SETTINGS).getFullList<SiteSetting>();
+        
+        const settings: SiteSettings = {};
+        records.forEach((record) => {
+          settings[record.key as keyof SiteSettings] = record.value || undefined;
+        });
 
-      return settings;
+        return settings;
+      } catch {
+        // PocketBase unavailable - return empty settings
+        return {};
+      }
     },
     staleTime: isDemoMode ? 0 : 5 * 60 * 1000,
+    retry: 1,
   });
 }
 

@@ -104,27 +104,35 @@ export function useGames(enabled = true) {
   return useQuery({
     queryKey: ['games', isAdmin],
     queryFn: async (): Promise<GameWithRelations[]> => {
-      const records = await pb.collection(Collections.GAMES).getFullList<GameExpanded>({
-        sort: 'title',
-        expand: 'publisher,mechanics',
-      });
-
-      const games = records.map(mapGame);
-      
-      // Filter out admin-only fields for non-admins
-      if (!isAdmin) {
-        games.forEach(g => {
-          g.location_room = undefined;
-          g.location_shelf = undefined;
-          g.location_misc = undefined;
-          g.admin_data = null;
+      try {
+        const records = await pb.collection(Collections.GAMES).getFullList<GameExpanded>({
+          sort: 'title',
+          expand: 'publisher,mechanics',
         });
-      }
 
-      return groupExpansions(games);
+        const games = records.map(mapGame);
+        
+        // Filter out admin-only fields for non-admins
+        if (!isAdmin) {
+          games.forEach(g => {
+            g.location_room = undefined;
+            g.location_shelf = undefined;
+            g.location_misc = undefined;
+            g.admin_data = null;
+          });
+        }
+
+        return groupExpansions(games);
+      } catch (error) {
+        // PocketBase not available - return empty array gracefully
+        // This allows the app to work without a backend (demo mode still functions)
+        console.warn('PocketBase unavailable, returning empty games list:', error);
+        return [];
+      }
     },
     enabled,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 1, // Only retry once to fail fast when PocketBase is down
   });
 }
 
@@ -198,11 +206,16 @@ export function useMechanics() {
   return useQuery({
     queryKey: ['mechanics'],
     queryFn: async (): Promise<{ id: string; name: string }[]> => {
-      const records = await pb.collection(Collections.MECHANICS).getFullList<Mechanic>({
-        sort: 'name',
-      });
-      return records.map(m => ({ id: m.id, name: m.name }));
+      try {
+        const records = await pb.collection(Collections.MECHANICS).getFullList<Mechanic>({
+          sort: 'name',
+        });
+        return records.map(m => ({ id: m.id, name: m.name }));
+      } catch {
+        return [];
+      }
     },
+    retry: 1,
   });
 }
 
@@ -210,11 +223,16 @@ export function usePublishers() {
   return useQuery({
     queryKey: ['publishers'],
     queryFn: async (): Promise<{ id: string; name: string }[]> => {
-      const records = await pb.collection(Collections.PUBLISHERS).getFullList<Publisher>({
-        sort: 'name',
-      });
-      return records.map(p => ({ id: p.id, name: p.name }));
+      try {
+        const records = await pb.collection(Collections.PUBLISHERS).getFullList<Publisher>({
+          sort: 'name',
+        });
+        return records.map(p => ({ id: p.id, name: p.name }));
+      } catch {
+        return [];
+      }
     },
+    retry: 1,
   });
 }
 

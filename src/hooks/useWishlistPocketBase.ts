@@ -52,29 +52,39 @@ export function useWishlist() {
   const { data: voteCounts, isLoading: isLoadingCounts } = useQuery({
     queryKey: ['wishlist-counts'],
     queryFn: async () => {
-      const records = await pb.collection(Collections.GAME_WISHLIST).getFullList<GameWishlist>();
-      
-      const countMap: Record<string, number> = {};
-      records.forEach(r => {
-        countMap[r.game] = (countMap[r.game] || 0) + 1;
-      });
-      return countMap;
+      try {
+        const records = await pb.collection(Collections.GAME_WISHLIST).getFullList<GameWishlist>();
+        
+        const countMap: Record<string, number> = {};
+        records.forEach(r => {
+          countMap[r.game] = (countMap[r.game] || 0) + 1;
+        });
+        return countMap;
+      } catch {
+        return {};
+      }
     },
     staleTime: 30000,
     enabled: !isDemoMode,
+    retry: 1,
   });
 
   // Fetch this guest's votes
   const { data: myVotes, isLoading: isLoadingVotes } = useQuery({
     queryKey: ['wishlist-my-votes', guestIdentifier],
     queryFn: async () => {
-      const records = await pb.collection(Collections.GAME_WISHLIST).getFullList<GameWishlist>({
-        filter: `guest_identifier = "${guestIdentifier}"`,
-      });
-      return new Set<string>(records.map(r => r.game));
+      try {
+        const records = await pb.collection(Collections.GAME_WISHLIST).getFullList<GameWishlist>({
+          filter: `guest_identifier = "${guestIdentifier}"`,
+        });
+        return new Set<string>(records.map(r => r.game));
+      } catch {
+        return new Set<string>();
+      }
     },
     staleTime: 30000,
     enabled: !isDemoMode,
+    retry: 1,
   });
 
   // Add vote mutation
