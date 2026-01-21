@@ -54,9 +54,32 @@ const Index = () => {
       navigate("/?" + newParams.toString(), { replace: true });
     }
   }, [flagsLoading, demoModeEnabled, searchParams, navigate]);
+
+  // Group expansions under parent games (same logic as useGames hook)
+  const groupExpansions = (allGames: typeof demoGames): typeof demoGames => {
+    const baseGames: typeof demoGames = [];
+    const expansionMap = new Map<string, typeof demoGames>();
+
+    allGames.forEach((game) => {
+      if (game.is_expansion && game.parent_game_id) {
+        const expansions = expansionMap.get(game.parent_game_id) || [];
+        expansions.push(game);
+        expansionMap.set(game.parent_game_id, expansions);
+      } else {
+        baseGames.push(game);
+      }
+    });
+
+    baseGames.forEach((game) => {
+      game.expansions = expansionMap.get(game.id) || [];
+    });
+
+    return baseGames;
+  };
   
   // Use demo games when in demo mode, otherwise use real games
-  const games = isDemoMode ? demoGames : realGames;
+  // Demo games need groupExpansions applied since they're stored flat
+  const games = isDemoMode ? groupExpansions([...demoGames]) : realGames;
 
   const filter = searchParams.get("filter");
   const filterValue = searchParams.get("value");
