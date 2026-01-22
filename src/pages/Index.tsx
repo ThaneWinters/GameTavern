@@ -237,28 +237,15 @@ const Index = () => {
       while (pages.length < 5) pages.push(null);
     } else {
       // 5 slots: first, prev/ellipsis, current, next/ellipsis, last
-      if (currentPage <= 2) {
+      if (currentPage <= 3) {
         // Near start: 1, 2, 3, ..., last
         pages.push(1, 2, 3, "ellipsis", totalPages);
-      } else if (currentPage >= totalPages - 1) {
+      } else if (currentPage >= totalPages - 2) {
         // Near end: 1, ..., last-2, last-1, last
         pages.push(1, "ellipsis", totalPages - 2, totalPages - 1, totalPages);
       } else {
-        // Middle: 1, prev, current, next, last
-        const prev = currentPage - 1;
-        const next = currentPage + 1;
-        
-        // Show ellipsis if there's a gap
-        if (prev > 2) {
-          pages.push(1, "ellipsis", currentPage, next === totalPages ? null : next, totalPages);
-        } else {
-          pages.push(1, prev, currentPage, next === totalPages ? null : next, totalPages);
-        }
-        
-        // If next is adjacent to last, don't show it separately
-        if (next >= totalPages - 1 && pages[3] !== null) {
-          pages[3] = next === totalPages ? null : "ellipsis";
-        }
+        // Middle: 1, ..., current, next, last
+        pages.push(1, "ellipsis", currentPage, currentPage + 1, totalPages);
       }
     }
     return pages;
