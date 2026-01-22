@@ -709,6 +709,35 @@ for i in {1..60}; do
 done
 
 # ==========================================
+# VERIFY AUTH DB MIGRATIONS COMPLETED
+# ==========================================
+
+echo ""
+echo -e "${CYAN}Verifying auth database tables...${NC}"
+
+# Auth health can be up before DB migrations are fully complete.
+# The admin user creation endpoint requires auth.users to exist.
+for i in {1..60}; do
+    if docker exec -i gamehaven-db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres -tAc "SELECT 1 FROM auth.users LIMIT 1;" >/dev/null 2>&1; then
+        echo -e "${GREEN}✓${NC} Auth tables are ready"
+        break
+    fi
+
+    if [ $i -eq 60 ]; then
+        echo -e "${RED}Error: Auth tables not ready (auth.users missing or inaccessible)${NC}"
+        echo -e "\n${YELLOW}Last 120 lines of auth logs:${NC}"
+        docker logs gamehaven-auth --tail=120 || true
+        echo -e "\n${YELLOW}Last 80 lines of db logs:${NC}"
+        docker logs gamehaven-db --tail=80 || true
+        echo -e "\n${YELLOW}Tip: If this is a permissions issue, run:${NC} ${YELLOW}./scripts/fix-auth-permissions.sh${NC}"
+        exit 1
+    fi
+
+    echo "  Waiting for auth DB migrations... ($i/60)"
+    sleep 2
+done
+
+# ==========================================
 # RUN APPLICATION MIGRATIONS
 # ==========================================
 
@@ -737,30 +766,52 @@ echo ""
 
 echo -e "${CYAN}Creating admin account...${NC}"
 
-# Create user via GoTrue API
-RESPONSE=$(curl -s -X POST "http://localhost:${KONG_PORT}/auth/v1/admin/users" \
-    -H "Content-Type: application/json" \
-    -H "apikey: ${SERVICE_ROLE_KEY}" \
-    -H "Authorization: Bearer ${SERVICE_ROLE_KEY}" \
-    -d "{
-        \"email\": \"${ADMIN_EMAIL}\",
-        \"password\": \"${ADMIN_PASSWORD}\",
-        \"email_confirm\": true
-    }")
+# Create user via GoTrue API (retry once after fixing auth permissions)
+create_admin_user() {
+  curl -s -X POST "http://localhost:${KONG_PORT}/auth/v1/admin/users" \
+      -H "Content-Type: application/json" \
+      -H "apikey: ${SERVICE_ROLE_KEY}" \
+      -H "Authorization: Bearer ${SERVICE_ROLE_KEY}" \
+      -d "{
+          \"email\": \"${ADMIN_EMAIL}\",
+          \"password\": \"${ADMIN_PASSWORD}\",
+          \"email_confirm\": true
+      }"
+}
+
+RESPONSE=$(create_admin_user)
 
 # Extract user ID
 USER_ID=$(echo $RESPONSE | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
 
 if [ -z "$USER_ID" ]; then
+    # If GoTrue is up but can't query the DB yet, try the permissions fix once.
+    if echo "$RESPONSE" | grep -q '"msg":"Database error checking email"'; then
+        echo -e "${YELLOW}Auth returned 'Database error checking email'. Attempting permission repair + retry...${NC}"
+        if [ -f ./scripts/fix-auth-permissions.sh ]; then
+            chmod +x ./scripts/fix-auth-permissions.sh 2>/dev/null || true
+            ./scripts/fix-auth-permissions.sh || true
+        fi
+        RESPONSE=$(create_admin_user)
+        USER_ID=$(echo $RESPONSE | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+    fi
+
+    if [ -n "$USER_ID" ]; then
+        echo -e "${GREEN}✓${NC} User created: $USER_ID"
+    else
     echo -e "${RED}Error creating admin user. Response:${NC}"
     echo "$RESPONSE"
     echo ""
     echo -e "${YELLOW}You can try manually later with:${NC}"
     echo -e "  ${YELLOW}./scripts/create-admin.sh${NC}"
     exit 1
+    fi
 fi
 
-echo -e "${GREEN}✓${NC} User created: $USER_ID"
+if [ -z "$USER_ID" ]; then
+    echo -e "${RED}Error: Admin user creation failed unexpectedly${NC}"
+    exit 1
+fi
 
 # Assign admin role
 echo -e "${CYAN}Assigning admin role...${NC}"
