@@ -60,6 +60,34 @@ if [ "$EXISTING_ENV" = true ] || [ "$EXISTING_DB_VOLUME" = true ]; then
     echo ""
 fi
 
+# If the DB volume exists and the user wants new secrets, we must wipe the DB.
+# Otherwise internal service roles (supabase_auth_admin/authenticator/etc.) will
+# keep their old passwords and auth/rest will fail with SQLSTATE 28P01.
+WIPE_EXISTING_DB=false
+if [ "$EXISTING_DB_VOLUME" = true ] && [ "$REUSE_EXISTING_SECRETS" != true ]; then
+    echo -e "${RED}${BOLD}Cannot proceed with NEW secrets while keeping the existing database volume.${NC}"
+    echo -e "${YELLOW}Reason:${NC} internal database roles keep the old password, causing auth/rest to fail to connect."
+    echo ""
+    prompt_yn WIPE_EXISTING_DB "Delete the existing database volume (gamehaven-db) and start fresh?" "n"
+    echo ""
+
+    if [ "$WIPE_EXISTING_DB" = true ]; then
+        echo -e "${YELLOW}Stopping stack and removing database volume...${NC}"
+        docker compose down -v >/dev/null 2>&1 || true
+        # Explicitly remove the named volume to avoid accidental reuse.
+        docker volume rm gamehaven-db >/dev/null 2>&1 || true
+        EXISTING_DB_VOLUME=false
+        echo -e "${GREEN}✓${NC} Database volume removed"
+        echo ""
+    else
+        echo -e "${YELLOW}Aborting to prevent a broken install.${NC}"
+        echo -e "Choose one of:${NC}"
+        echo -e "  1) Re-run and answer ${GREEN}Yes${NC} to reuse existing secrets (.env)"
+        echo -e "  2) Re-run and answer ${GREEN}Yes${NC} to wipe the database volume"
+        exit 1
+    fi
+fi
+
 # Function to prompt with default
 prompt() {
     local var_name=$1
@@ -429,10 +457,23 @@ echo -e "${CYAN}Waiting for auth service to be ready...${NC}"
 # This endpoint is routed by Kong and intentionally left unauthenticated.
 AUTH_HEALTH_URL="http://localhost:${KONG_PORT}/auth/v1/health"
 
+# If auth doesn't come up, the most common cause on redeploy is that the DB volume
+# contains old role passwords. We'll attempt a one-time password sync + restart.
+ATTEMPTED_DB_PASSWORD_SYNC=false
+
 for i in {1..90}; do
     if curl -fsS --max-time 2 "$AUTH_HEALTH_URL" >/dev/null 2>&1; then
         echo -e "${GREEN}✓${NC} Auth service is ready"
         break
+    fi
+
+    # One-time recovery attempt after ~20 seconds.
+    if [ $i -eq 10 ] && [ "$ATTEMPTED_DB_PASSWORD_SYNC" = false ]; then
+        echo -e "${YELLOW}Auth not ready yet — attempting database password sync recovery...${NC}"
+        ATTEMPTED_DB_PASSWORD_SYNC=true
+        # This script runs psql inside the DB container (no password needed) and resets
+        # internal role passwords to match POSTGRES_PASSWORD from .env, then restarts services.
+        ./scripts/fix-db-passwords.sh >/dev/null 2>&1 || true
     fi
     
     if [ $i -eq 90 ]; then
@@ -443,6 +484,10 @@ for i in {1..90}; do
         docker logs gamehaven-auth --tail=120 || true
         echo -e "\n${YELLOW}Last 80 lines of db logs (often shows auth DB login failures):${NC}"
         docker logs gamehaven-db --tail=80 || true
+        echo ""
+        echo -e "${YELLOW}If you see SQLSTATE 28P01 (password authentication failed) for supabase_auth_admin/authenticator:${NC}"
+        echo -e "- You likely generated NEW secrets while keeping an existing database volume."
+        echo -e "- Fix by re-running install and choosing to reuse secrets, or wipe the DB volume and start fresh."
         exit 1
     fi
     
