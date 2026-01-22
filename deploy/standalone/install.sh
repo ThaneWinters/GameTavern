@@ -799,12 +799,21 @@ if [ -z "$USER_ID" ]; then
     if [ -n "$USER_ID" ]; then
         echo -e "${GREEN}✓${NC} User created: $USER_ID"
     else
-    echo -e "${RED}Error creating admin user. Response:${NC}"
-    echo "$RESPONSE"
-    echo ""
-    echo -e "${YELLOW}You can try manually later with:${NC}"
-    echo -e "  ${YELLOW}./scripts/create-admin.sh${NC}"
-    exit 1
+        echo -e "${RED}Error creating admin user. Response:${NC}"
+        echo "$RESPONSE"
+
+        echo ""
+        echo -e "${YELLOW}Auth logs (last 200 lines):${NC}"
+        docker logs gamehaven-auth --tail=200 || true
+
+        echo ""
+        echo -e "${YELLOW}DB logs (last 120 lines):${NC}"
+        docker logs gamehaven-db --tail=120 || true
+
+        echo ""
+        echo -e "${YELLOW}You can try manually later with:${NC}"
+        echo -e "  ${YELLOW}./scripts/create-admin.sh${NC}"
+        exit 1
     fi
 fi
 
