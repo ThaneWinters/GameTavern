@@ -2,25 +2,110 @@
 
 Complete self-hosted package including the Game Haven app and full Supabase stack.
 
-## Quick Start
+## Fresh Server Setup
+
+Starting from a fresh Ubuntu/Debian server with only SSH access:
+
+### 1. Connect to Your Server
 
 ```bash
-# 1. Run the interactive installer
+ssh root@your-server-ip
+```
+
+### 2. Update System & Install Prerequisites
+
+```bash
+# Update packages
+apt update && apt upgrade -y
+
+# Install required tools
+apt install -y curl git wget unzip
+```
+
+### 3. Install Docker
+
+```bash
+# Install Docker using the official script
+curl -fsSL https://get.docker.com | sh
+
+# Start Docker and enable on boot
+systemctl start docker
+systemctl enable docker
+
+# Verify installation
+docker --version
+docker compose version
+```
+
+### 4. Create a Non-Root User (Recommended)
+
+```bash
+# Create user
+adduser gamehaven
+usermod -aG docker gamehaven
+usermod -aG sudo gamehaven
+
+# Switch to new user
+su - gamehaven
+```
+
+### 5. Download Game Haven
+
+```bash
+# Clone the repository
+git clone https://github.com/ThaneWinters/tzolakgamehaven.git
+cd tzolakgamehaven/deploy/standalone
+
+# Make scripts executable
 chmod +x install.sh
+chmod +x scripts/*.sh
+```
+
+### 6. Run the Installer
+
+```bash
 ./install.sh
+```
 
-# 2. Start everything
+The wizard will prompt you for:
+- Site name and description
+- Domain (or localhost for testing)
+- Ports for each service
+- Feature toggles
+- Email/SMTP settings (optional)
+- Whether to enable Admin Studio
+
+### 7. Start the Stack
+
+```bash
 docker compose up -d
+```
 
-# 3. Wait for services (~30 seconds)
-docker compose logs -f
+Wait ~60 seconds for all services to initialize.
 
-# 4. Create your admin user
-chmod +x scripts/create-admin.sh
+### 8. Create Your Admin User
+
+```bash
 ./scripts/create-admin.sh
+```
 
-# 5. Access your site
-open http://localhost:3000
+### 9. Access Your Site
+
+- **Application**: `http://your-server-ip:3000`
+- **Admin Studio** (if enabled): `http://your-server-ip:3001`
+
+---
+
+## One-Line Install (Alternative)
+
+For an even faster setup on a fresh server:
+
+```bash
+curl -fsSL https://get.docker.com | sh && \
+git clone https://github.com/ThaneWinters/tzolakgamehaven.git && \
+cd tzolakgamehaven/deploy/standalone && \
+chmod +x install.sh scripts/*.sh && \
+./install.sh
 ```
 
 ## What's Included
