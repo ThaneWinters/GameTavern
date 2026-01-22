@@ -228,25 +228,37 @@ const Index = () => {
 
   const hasActiveFilters = !!filter;
 
-  // Generate page numbers to display - always returns exactly 4 slots for consistent width
-  // Pattern: shows 1, 2, 3, ..., last at start, shifts toward middle as you navigate
+  // Generate page numbers: 1, prev, current, next, last (5 slots with surrounding context)
   const getPageNumbers = () => {
     const pages: (number | "ellipsis" | null)[] = [];
-    if (totalPages <= 4) {
-      // Show all pages, pad with nulls to maintain 4 slots
+    if (totalPages <= 5) {
+      // Show all pages, pad with nulls to maintain consistent width
       for (let i = 1; i <= totalPages; i++) pages.push(i);
-      while (pages.length < 4) pages.push(null);
+      while (pages.length < 5) pages.push(null);
     } else {
-      // Always 4 slots with smart shifting
-      if (currentPage <= 3) {
+      // 5 slots: first, prev/ellipsis, current, next/ellipsis, last
+      if (currentPage <= 2) {
         // Near start: 1, 2, 3, ..., last
         pages.push(1, 2, 3, "ellipsis", totalPages);
-      } else if (currentPage >= totalPages - 2) {
+      } else if (currentPage >= totalPages - 1) {
         // Near end: 1, ..., last-2, last-1, last
         pages.push(1, "ellipsis", totalPages - 2, totalPages - 1, totalPages);
       } else {
-        // Middle: 1, ..., current, ..., last
-        pages.push(1, "ellipsis", currentPage, "ellipsis", totalPages);
+        // Middle: 1, prev, current, next, last
+        const prev = currentPage - 1;
+        const next = currentPage + 1;
+        
+        // Show ellipsis if there's a gap
+        if (prev > 2) {
+          pages.push(1, "ellipsis", currentPage, next === totalPages ? null : next, totalPages);
+        } else {
+          pages.push(1, prev, currentPage, next === totalPages ? null : next, totalPages);
+        }
+        
+        // If next is adjacent to last, don't show it separately
+        if (next >= totalPages - 1 && pages[3] !== null) {
+          pages[3] = next === totalPages ? null : "ellipsis";
+        }
       }
     }
     return pages;

@@ -19,7 +19,8 @@ services:
     ports:
       - "${APP_PORT:-3000}:80"
     environment:
-      - SUPABASE_URL=http://kong:8000
+      # CRITICAL: Use external URL so browser can reach Kong from outside Docker
+      - SUPABASE_URL=${API_EXTERNAL_URL:-http://localhost:${KONG_HTTP_PORT:-8000}}
       - SUPABASE_ANON_KEY=${ANON_KEY}
       - SITE_NAME=${SITE_NAME:-Game Haven}
       - SITE_DESCRIPTION=${SITE_DESCRIPTION:-Browse and discover our collection of board games}
