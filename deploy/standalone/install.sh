@@ -80,6 +80,13 @@ generate_jwt_key() {
     echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6IiR7cm9sZX0iLCJpYXQiOjE2NDExNjk1MjAsImV4cCI6MTc5ODkzNTkyMH0.$(echo -n "demo-$role-key" | base64)"
 }
 
+# Escape value for safe use in .env file (handles quotes and special chars)
+escape_env_value() {
+    local val="$1"
+    # Replace single quotes with escaped version for single-quoted strings
+    echo "$val" | sed "s/'/'\\\\''/g"
+}
+
 echo -e "${BOLD}━━━ Site Configuration ━━━${NC}"
 echo ""
 
@@ -176,68 +183,75 @@ echo ""
 echo -e "${BOLD}━━━ Creating Configuration ━━━${NC}"
 echo ""
 
-cat > .env << EOF
-# ============================================
-# Game Haven - Generated Configuration
-# Generated: $(date)
-# ============================================
+# Escape values for safe use in .env
+ESC_SITE_NAME=$(escape_env_value "$SITE_NAME")
+ESC_SITE_DESCRIPTION=$(escape_env_value "$SITE_DESCRIPTION")
+ESC_SITE_AUTHOR=$(escape_env_value "$SITE_AUTHOR")
+ESC_SMTP_PASS=$(escape_env_value "$SMTP_PASS")
 
-# ===================
-# Site Settings
-# ===================
-SITE_NAME="${SITE_NAME}"
-SITE_DESCRIPTION="${SITE_DESCRIPTION}"
-SITE_AUTHOR="${SITE_AUTHOR}"
-SITE_URL="${SITE_URL}"
-API_EXTERNAL_URL="${API_URL}"
-
-# ===================
-# Ports
-# ===================
-APP_PORT=${APP_PORT}
-STUDIO_PORT=${STUDIO_PORT}
-POSTGRES_PORT=${POSTGRES_PORT}
-KONG_HTTP_PORT=${KONG_PORT}
-
-# ===================
-# Features
-# ===================
-FEATURE_PLAY_LOGS=${FEATURE_PLAY_LOGS}
-FEATURE_WISHLIST=${FEATURE_WISHLIST}
-FEATURE_FOR_SALE=${FEATURE_FOR_SALE}
-FEATURE_MESSAGING=${FEATURE_MESSAGING}
-FEATURE_COMING_SOON=${FEATURE_COMING_SOON}
-FEATURE_DEMO_MODE=${FEATURE_DEMO_MODE}
-
-# ===================
-# Database
-# ===================
-POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
-
-# ===================
-# Authentication
-# ===================
-JWT_SECRET="${JWT_SECRET}"
-ANON_KEY="${ANON_KEY}"
-SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY}"
-SECRET_KEY_BASE="${SECRET_KEY_BASE}"
-MAILER_AUTOCONFIRM=${MAILER_AUTOCONFIRM}
-DISABLE_SIGNUP=false
-
-# ===================
-# Email (SMTP)
-# ===================
-SMTP_HOST="${SMTP_HOST}"
-SMTP_PORT="${SMTP_PORT}"
-SMTP_USER="${SMTP_USER}"
-SMTP_PASS="${SMTP_PASS}"
-SMTP_ADMIN_EMAIL="${SMTP_FROM}"
-
-# ===================
-# Additional
-# ===================
-ADDITIONAL_REDIRECT_URLS=
-EOF
+# Write .env file with proper quoting
+{
+    echo "# ============================================"
+    echo "# Game Haven - Generated Configuration"
+    echo "# Generated: $(date)"
+    echo "# ============================================"
+    echo ""
+    echo "# ==================="
+    echo "# Site Settings"
+    echo "# ==================="
+    echo "SITE_NAME='${ESC_SITE_NAME}'"
+    echo "SITE_DESCRIPTION='${ESC_SITE_DESCRIPTION}'"
+    echo "SITE_AUTHOR='${ESC_SITE_AUTHOR}'"
+    echo "SITE_URL='${SITE_URL}'"
+    echo "API_EXTERNAL_URL='${API_URL}'"
+    echo ""
+    echo "# ==================="
+    echo "# Ports"
+    echo "# ==================="
+    echo "APP_PORT=${APP_PORT}"
+    echo "STUDIO_PORT=${STUDIO_PORT}"
+    echo "POSTGRES_PORT=${POSTGRES_PORT}"
+    echo "KONG_HTTP_PORT=${KONG_PORT}"
+    echo ""
+    echo "# ==================="
+    echo "# Features"
+    echo "# ==================="
+    echo "FEATURE_PLAY_LOGS=${FEATURE_PLAY_LOGS}"
+    echo "FEATURE_WISHLIST=${FEATURE_WISHLIST}"
+    echo "FEATURE_FOR_SALE=${FEATURE_FOR_SALE}"
+    echo "FEATURE_MESSAGING=${FEATURE_MESSAGING}"
+    echo "FEATURE_COMING_SOON=${FEATURE_COMING_SOON}"
+    echo "FEATURE_DEMO_MODE=${FEATURE_DEMO_MODE}"
+    echo ""
+    echo "# ==================="
+    echo "# Database"
+    echo "# ==================="
+    echo "POSTGRES_PASSWORD='${POSTGRES_PASSWORD}'"
+    echo ""
+    echo "# ==================="
+    echo "# Authentication"
+    echo "# ==================="
+    echo "JWT_SECRET='${JWT_SECRET}'"
+    echo "ANON_KEY='${ANON_KEY}'"
+    echo "SERVICE_ROLE_KEY='${SERVICE_ROLE_KEY}'"
+    echo "SECRET_KEY_BASE='${SECRET_KEY_BASE}'"
+    echo "MAILER_AUTOCONFIRM=${MAILER_AUTOCONFIRM}"
+    echo "DISABLE_SIGNUP=false"
+    echo ""
+    echo "# ==================="
+    echo "# Email (SMTP)"
+    echo "# ==================="
+    echo "SMTP_HOST='${SMTP_HOST}'"
+    echo "SMTP_PORT='${SMTP_PORT}'"
+    echo "SMTP_USER='${SMTP_USER}'"
+    echo "SMTP_PASS='${ESC_SMTP_PASS}'"
+    echo "SMTP_ADMIN_EMAIL='${SMTP_FROM}'"
+    echo ""
+    echo "# ==================="
+    echo "# Additional"
+    echo "# ==================="
+    echo "ADDITIONAL_REDIRECT_URLS="
+} > .env
 
 echo -e "${GREEN}✓${NC} Created .env file"
 
