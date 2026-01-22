@@ -54,9 +54,15 @@ services:
       POSTGRES_DB: postgres
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXP: 3600
+      # Pass password to init scripts via postgres config
+      POSTGRES_INITDB_ARGS: "-c app.settings.postgres_password=${POSTGRES_PASSWORD}"
     volumes:
       - gamehaven-db:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d
+    command:
+      - postgres
+      - -c
+      - app.settings.postgres_password=${POSTGRES_PASSWORD}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
