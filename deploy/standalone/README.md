@@ -259,7 +259,28 @@ docker compose up -d
 
 ## Troubleshooting
 
-### Services not starting
+### Services not starting / "password authentication failed"
+
+The `create-admin.sh` script automatically detects and fixes this issue. If services show as "Restarting", simply run:
+
+```bash
+./scripts/create-admin.sh
+```
+
+The script will:
+1. Detect unhealthy services
+2. Synchronize database passwords
+3. Restart affected services
+4. Wait for everything to be ready
+5. Then create the admin user
+
+**Manual fix** (if needed):
+
+```bash
+./scripts/fix-db-passwords.sh
+```
+
+### Check service health
 
 ```bash
 # Check service health
@@ -289,6 +310,7 @@ docker compose down -v
 # Re-run installer
 ./install.sh
 docker compose up -d
+./scripts/create-admin.sh
 ```
 
 ## Requirements
