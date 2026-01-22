@@ -244,18 +244,159 @@ docker logs gamehaven-kong --tail=50
 # Verify database is ready
 docker exec gamehaven-db pg_isready
 
+# Test actual connection (more reliable than pg_isready)
+docker exec gamehaven-db psql -U supabase_admin -d postgres -c "SELECT 1;"
+
 # Check database logs
 docker compose logs db
 ```
 
-### Complete Reset
+### Database connection refused during install
+
+If the installer fails with "connection to server on socket... failed: Connection refused", the database may not be fully initialized. Wait and retry:
 
 ```bash
-# Stop and remove all containers and volumes
+sleep 15 && ./install.sh
+```
+
+### SSL / Certbot Issues
+
+**Re-run SSL setup:**
+
+```bash
+./scripts/setup-nginx.sh
+```
+
+**Manually renew certificates:**
+
+```bash
+sudo certbot renew
+```
+
+**Force certificate renewal:**
+
+```bash
+sudo certbot renew --force-renewal
+```
+
+**Test certificate renewal (dry run):**
+
+```bash
+sudo certbot renew --dry-run
+```
+
+**Check certificate status:**
+
+```bash
+sudo certbot certificates
+```
+
+**Obtain a new certificate manually:**
+
+```bash
+sudo certbot --nginx -d yourdomain.com
+```
+
+### Nginx Issues
+
+**Test configuration:**
+
+```bash
+sudo nginx -t
+```
+
+**Reload after config changes:**
+
+```bash
+sudo systemctl reload nginx
+```
+
+**View access/error logs:**
+
+```bash
+sudo tail -f /var/log/nginx/gamehaven.access.log
+sudo tail -f /var/log/nginx/gamehaven.error.log
+```
+
+**Remove and reconfigure Nginx:**
+
+```bash
+sudo rm -f /etc/nginx/sites-enabled/gamehaven /etc/nginx/sites-available/gamehaven
+sudo systemctl reload nginx
+./scripts/setup-nginx.sh
+```
+
+### Studio Access Issues
+
+If Studio is not accessible via HTTPS, access it through the Nginx proxy:
+
+```
+https://yourdomain.com/studio/
+```
+
+Or directly (HTTP only, not recommended for production):
+
+```
+http://your-server-ip:3001
+```
+
+### Update to Latest Version
+
+```bash
+cd ~/GameTavern
+git fetch origin && git reset --hard origin/main
+cd deploy/standalone
+chmod +x install.sh scripts/*.sh
+docker compose down
+docker compose build --no-cache
+docker compose up -d
+```
+
+### Complete Reset (Fresh Start)
+
+```bash
+# Stop and remove all containers and volumes (deletes all data!)
 docker compose down -v
 
 # Re-run installer
 ./install.sh
+```
+
+### Full Uninstall
+
+```bash
+# Stop containers and delete all data
+cd ~/GameTavern/deploy/standalone
+docker compose down -v
+
+# Remove Docker image
+docker rmi standalone-gamehaven:latest 2>/dev/null
+
+# Remove project files
+cd ~ && rm -rf ~/GameTavern
+
+# Remove Nginx config
+sudo rm -f /etc/nginx/sites-enabled/gamehaven /etc/nginx/sites-available/gamehaven
+sudo systemctl reload nginx
+
+# (Optional) Remove Docker build cache
+docker builder prune -af
+```
+
+### Check Service Health
+
+```bash
+# All container statuses
+docker compose ps
+
+# Health of each service
+docker inspect --format='{{.Name}}: {{.State.Health.Status}}' $(docker compose ps -q) 2>/dev/null
+
+# API health check
+curl -s http://localhost:8000/auth/v1/health | jq .
+
+# App health check  
+curl -s http://localhost:3000/health
 ```
 
 ## Requirements
