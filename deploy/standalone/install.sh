@@ -586,13 +586,14 @@ ESCAPED_PW=$(printf '%s' "$POSTGRES_PASSWORD" | sed "s/'/''/g")
 
 # Set passwords for internal Supabase roles BEFORE starting auth/rest
 # Also create auth and storage schemas that GoTrue and Storage expect
-docker exec -i gamehaven-db psql -U supabase_admin -d postgres << EOSQL
+# NOTE: We use echo + pipe instead of heredoc to avoid shell parsing issues
+SQL_SCRIPT="
 -- Ensure internal roles exist (in case 00-init-users.sql didn't create them)
-DO \$\$
+DO \\\$\\\$
 BEGIN
-  -- GoTrue migrations expect a role literally named "postgres" to exist.
+  -- GoTrue migrations expect a role literally named 'postgres' to exist.
   -- When the cluster is initialized with POSTGRES_USER=supabase_admin,
-  -- the default "postgres" role may not be created.
+  -- the default 'postgres' role may not be created.
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'postgres') THEN
     CREATE ROLE postgres WITH LOGIN SUPERUSER CREATEDB CREATEROLE;
   END IF;
@@ -615,7 +616,7 @@ BEGIN
     CREATE ROLE service_role NOLOGIN BYPASSRLS;
   END IF;
 END
-\$\$;
+\\\$\\\$;
 
 -- Set passwords for internal roles (must match .env POSTGRES_PASSWORD)
 ALTER ROLE postgres WITH PASSWORD '${ESCAPED_PW}';
@@ -654,7 +655,16 @@ GRANT service_role TO authenticator;
 GRANT anon TO supabase_admin;
 GRANT authenticated TO supabase_admin;
 GRANT service_role TO supabase_admin;
-EOSQL
+"
+
+# Run using printf to avoid shell interpretation issues with heredocs
+printf '%s' "$SQL_SCRIPT" | docker exec -i gamehaven-db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres
+
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Error: Failed to configure database roles${NC}"
+    echo -e "Check database logs: ${YELLOW}docker logs gamehaven-db${NC}"
+    exit 1
+fi
 
 echo -e "${GREEN}✓${NC} Database roles and passwords configured"
 
