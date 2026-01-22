@@ -242,18 +242,20 @@ ESC_SMTP_PASS=$(escape_env_value "$SMTP_PASS")
     echo "# ==================="
     echo "# Database"
     echo "# ==================="
-    echo "POSTGRES_PASSWORD=\"${POSTGRES_PASSWORD}\""
+    # Generated secrets are restricted to safe characters (see generate_secret),
+    # so keep them unquoted to avoid Docker Compose treating quotes as literal.
+    echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
     echo ""
     echo "# ==================="
     echo "# Authentication"
     echo "# ==================="
-    echo "JWT_SECRET=\"${JWT_SECRET}\""
+    echo "JWT_SECRET=${JWT_SECRET}"
     # NOTE: docker compose .env parsing does NOT reliably strip quotes.
     # Keep JWTs unquoted so Kong key-auth sees the exact same value that
     # scripts (which `source .env`) will send in the `apikey` header.
     echo "ANON_KEY=${ANON_KEY}"
     echo "SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}"
-    echo "SECRET_KEY_BASE=\"${SECRET_KEY_BASE}\""
+    echo "SECRET_KEY_BASE=${SECRET_KEY_BASE}"
     echo "MAILER_AUTOCONFIRM=${MAILER_AUTOCONFIRM}"
     echo "DISABLE_SIGNUP=false"
     echo ""
