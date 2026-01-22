@@ -27,6 +27,71 @@ echo ""
 echo -e "${BLUE}━━━ Create Admin User ━━━${NC}"
 echo ""
 
+# ==========================================
+# Step 1: Check and fix DB user passwords
+# ==========================================
+echo -e "${YELLOW}Checking database connectivity...${NC}"
+
+# Check if auth container is healthy
+AUTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' gamehaven-auth 2>/dev/null || echo "unknown")
+
+if [ "$AUTH_STATUS" != "healthy" ]; then
+    echo -e "${YELLOW}Auth service not healthy. Fixing database passwords...${NC}"
+    
+    # Wait for postgres to be ready
+    for i in {1..30}; do
+        if docker exec gamehaven-db pg_isready -U postgres >/dev/null 2>&1; then
+            break
+        fi
+        echo "  Waiting for database... ($i/30)"
+        sleep 1
+    done
+    
+    # Reset passwords for internal users
+    docker exec -i gamehaven-db psql -U postgres -d postgres << EOF
+-- Reset passwords for internal Supabase users
+ALTER ROLE supabase_auth_admin WITH PASSWORD '${POSTGRES_PASSWORD}';
+ALTER ROLE authenticator WITH PASSWORD '${POSTGRES_PASSWORD}';
+ALTER ROLE supabase_admin WITH PASSWORD '${POSTGRES_PASSWORD}';
+ALTER ROLE supabase_storage_admin WITH PASSWORD '${POSTGRES_PASSWORD}';
+EOF
+    
+    echo -e "${GREEN}✓${NC} Database passwords synchronized"
+    
+    # Restart affected services
+    echo -e "${YELLOW}Restarting services...${NC}"
+    docker restart gamehaven-auth gamehaven-rest gamehaven-realtime >/dev/null 2>&1
+    
+    # Wait for auth to become healthy
+    echo -e "${YELLOW}Waiting for services to initialize...${NC}"
+    for i in {1..60}; do
+        AUTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' gamehaven-auth 2>/dev/null || echo "unknown")
+        if [ "$AUTH_STATUS" = "healthy" ]; then
+            echo -e "${GREEN}✓${NC} Auth service is healthy"
+            break
+        fi
+        
+        # Check if container is running at all
+        AUTH_RUNNING=$(docker inspect --format='{{.State.Running}}' gamehaven-auth 2>/dev/null || echo "false")
+        if [ "$AUTH_RUNNING" = "false" ]; then
+            echo "  Auth restarting... ($i/60)"
+        else
+            echo "  Waiting for auth to be ready... ($i/60)"
+        fi
+        sleep 2
+    done
+    
+    if [ "$AUTH_STATUS" != "healthy" ]; then
+        echo -e "${RED}Warning: Auth service may not be fully ready. Continuing anyway...${NC}"
+    fi
+else
+    echo -e "${GREEN}✓${NC} Auth service is healthy"
+fi
+
+# ==========================================
+# Step 2: Collect admin credentials
+# ==========================================
+echo ""
 read -p "$(echo -e "${BLUE}?${NC} Admin email: ")" ADMIN_EMAIL
 read -sp "$(echo -e "${BLUE}?${NC} Admin password: ")" ADMIN_PASSWORD
 echo ""
@@ -42,18 +107,12 @@ if [ ${#ADMIN_PASSWORD} -lt 6 ]; then
     exit 1
 fi
 
+# ==========================================
+# Step 3: Create user via GoTrue API
+# ==========================================
 echo ""
 echo -e "${YELLOW}Creating admin user...${NC}"
 
-# Debug: Show first/last 10 chars of key being used
-KEY_PREVIEW="${SERVICE_ROLE_KEY:0:20}...${SERVICE_ROLE_KEY: -10}"
-echo -e "${BLUE}Using key: ${KEY_PREVIEW}${NC}"
-
-# Verify Kong is using the same key
-KONG_KEY=$(docker exec gamehaven-kong printenv SUPABASE_SERVICE_KEY 2>/dev/null | head -c 30)
-echo -e "${BLUE}Kong sees: ${KONG_KEY}...${NC}"
-
-# Create user via GoTrue API
 RESPONSE=$(curl -s -X POST "http://localhost:${KONG_HTTP_PORT:-8000}/auth/v1/admin/users" \
     -H "Content-Type: application/json" \
     -H "apikey: ${SERVICE_ROLE_KEY}" \
@@ -75,7 +134,9 @@ fi
 
 echo -e "${GREEN}✓${NC} User created: $USER_ID"
 
-# Add admin role
+# ==========================================
+# Step 4: Assign admin role
+# ==========================================
 echo -e "${YELLOW}Assigning admin role...${NC}"
 
 docker exec -i gamehaven-db psql -U postgres -d postgres << EOF
