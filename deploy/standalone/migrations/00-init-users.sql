@@ -95,6 +95,21 @@ GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 -- Grant auth schema to supabase_auth_admin (GoTrue needs this)
 GRANT ALL ON SCHEMA auth TO supabase_auth_admin;
 
+-- Set default privileges so GoTrue-created tables are accessible
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin IN SCHEMA auth
+GRANT ALL ON TABLES TO supabase_auth_admin, supabase_admin, postgres;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin IN SCHEMA auth
+GRANT ALL ON SEQUENCES TO supabase_auth_admin, supabase_admin, postgres;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin IN SCHEMA auth
+GRANT ALL ON FUNCTIONS TO supabase_auth_admin, supabase_admin, postgres;
+
+-- Also grant service_role access to auth schema for API calls
+GRANT USAGE ON SCHEMA auth TO service_role;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin IN SCHEMA auth
+GRANT SELECT ON TABLES TO service_role;
+
 -- =====================================================
 -- Create app_role enum and user_roles table EARLY
 -- This must exist before any RLS policies that use has_role()
