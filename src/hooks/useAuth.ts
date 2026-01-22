@@ -26,6 +26,37 @@ export function useAuth() {
   useEffect(() => {
     let mounted = true;
 
+    const decodeJwtPayload = (jwt?: string): any | null => {
+      if (!jwt) return null;
+      const parts = jwt.split(".");
+      if (parts.length < 2) return null;
+      try {
+        const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const padded = b64.padEnd(b64.length + ((4 - (b64.length % 4)) % 4), "=");
+        const json = atob(padded);
+        return JSON.parse(json);
+      } catch {
+        return null;
+      }
+    };
+
+    const isTokenExpired = (accessToken?: string, expiresAt?: number | null) => {
+      // Prefer explicit expires_at when available (seconds since epoch).
+      if (typeof expiresAt === "number" && Number.isFinite(expiresAt)) {
+        return Date.now() >= expiresAt * 1000;
+      }
+
+      // Fall back to JWT exp claim.
+      const payload = decodeJwtPayload(accessToken);
+      const exp = payload?.exp;
+      if (typeof exp === "number" && Number.isFinite(exp)) {
+        return Date.now() >= exp * 1000;
+      }
+
+      // If we can't determine expiry, treat it as not expired.
+      return false;
+    };
+
     const fetchIsAdmin = async (userId: string, accessToken?: string) => {
       // Role lookup should never block auth UI rendering.
       const timeoutMs = 3000;
@@ -134,6 +165,18 @@ export function useAuth() {
         const parsed = JSON.parse(raw);
         // When the SDK writes this, it is shaped like a Session.
         if (parsed?.access_token && parsed?.refresh_token && parsed?.user) {
+          const expired = isTokenExpired(parsed.access_token, parsed?.expires_at ?? null);
+          if (expired) {
+            // Critical: stale sessions in storage cause redirect loops (/admin <-> /settings)
+            // because we "hydrate" first and then the auth listener clears it.
+            try {
+              localStorage.removeItem(authStorageKey);
+            } catch {
+              // ignore
+            }
+            return null;
+          }
+
           return parsed as Session;
         }
 
