@@ -68,4 +68,9 @@ EOSQL
 
 echo -e "${GREEN}✓${NC} Auth permissions fixed"
 echo ""
+
+echo -e "${YELLOW}Restarting auth + gateway to ensure permissions are picked up...${NC}"
+docker restart gamehaven-auth gamehaven-kong >/dev/null 2>&1 || true
+
+echo ""
 echo -e "Now try running: ${YELLOW}./scripts/create-admin.sh${NC}"
