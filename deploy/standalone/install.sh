@@ -557,7 +557,7 @@ echo -e "${CYAN}Waiting for database to be ready...${NC}"
 
 for i in {1..90}; do
     if docker exec gamehaven-db pg_isready -U supabase_admin -d postgres >/dev/null 2>&1; then
-        echo -e "${GREEN}✓${NC} Database is ready"
+        echo -e "${GREEN}✓${NC} Database is ready (pg_isready)"
         break
     fi
     
@@ -571,8 +571,24 @@ for i in {1..90}; do
     sleep 2
 done
 
-# Give postgres a moment to finish init scripts
-sleep 3
+# pg_isready passes before the Unix socket is fully available.
+# Wait until we can actually run a query.
+echo -e "${CYAN}Waiting for database to accept connections...${NC}"
+for j in {1..30}; do
+    if docker exec gamehaven-db psql -U supabase_admin -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+        echo -e "${GREEN}✓${NC} Database accepting connections"
+        break
+    fi
+    
+    if [ $j -eq 30 ]; then
+        echo -e "${RED}Error: Database not accepting connections${NC}"
+        echo -e "Run: ${YELLOW}docker logs gamehaven-db${NC}"
+        exit 1
+    fi
+    
+    echo "  Waiting for connections... ($j/30)"
+    sleep 2
+done
 
 # ==========================================
 # SETUP DATABASE PASSWORDS
