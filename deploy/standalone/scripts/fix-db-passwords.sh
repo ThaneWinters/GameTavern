@@ -27,8 +27,9 @@ echo -e "${YELLOW}Resetting Supabase internal user passwords...${NC}"
 # Escape single quotes in password for SQL
 ESCAPED_PW=$(printf '%s' "$POSTGRES_PASSWORD" | sed "s/'/''/g")
 
-# Reset passwords for all internal users
+# Reset passwords and grant permissions for all internal users
 docker exec -i gamehaven-db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres << EOSQL
+-- Create roles if they don't exist
 DO \$\$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_auth_admin') THEN
@@ -37,20 +38,50 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticator') THEN
     CREATE ROLE authenticator WITH LOGIN;
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_admin') THEN
-    CREATE ROLE supabase_admin WITH LOGIN;
-  END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_storage_admin') THEN
     CREATE ROLE supabase_storage_admin WITH LOGIN;
   END IF;
 END
 \$\$;
 
--- Reset passwords for internal users to match POSTGRES_PASSWORD
+-- Reset passwords
 ALTER ROLE supabase_auth_admin WITH PASSWORD '${ESCAPED_PW}';
 ALTER ROLE authenticator WITH PASSWORD '${ESCAPED_PW}';
 ALTER ROLE supabase_admin WITH PASSWORD '${ESCAPED_PW}';
 ALTER ROLE supabase_storage_admin WITH PASSWORD '${ESCAPED_PW}';
+
+-- Grant supabase_auth_admin superuser-like permissions for GoTrue migrations
+ALTER ROLE supabase_auth_admin WITH SUPERUSER CREATEDB CREATEROLE;
+
+-- Grant supabase_storage_admin permissions
+ALTER ROLE supabase_storage_admin WITH CREATEDB CREATEROLE;
+
+-- Ensure authenticator can switch to anon/authenticated/service_role
+DO \$\$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+    CREATE ROLE anon NOLOGIN;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+    CREATE ROLE authenticated NOLOGIN;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+    CREATE ROLE service_role NOLOGIN BYPASSRLS;
+  END IF;
+END
+\$\$;
+
+GRANT anon TO authenticator;
+GRANT authenticated TO authenticator;
+GRANT service_role TO authenticator;
+GRANT anon TO supabase_admin;
+GRANT authenticated TO supabase_admin;
+GRANT service_role TO supabase_admin;
+
+-- Grant public schema usage
+GRANT ALL ON SCHEMA public TO supabase_auth_admin;
+GRANT ALL ON SCHEMA public TO supabase_storage_admin;
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 EOSQL
 
 echo -e "${GREEN}✓${NC} Passwords reset successfully"
