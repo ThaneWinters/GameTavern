@@ -55,8 +55,8 @@ apt update
 # Upgrade all packages
 apt upgrade -y
 
-# Install essential tools
-apt install -y curl wget git openssl htop nano ufw fail2ban
+# Install essential tools (including nginx for reverse proxy)
+apt install -y curl wget git unzip openssl htop nano ufw fail2ban nginx certbot python3-certbot-nginx
 ```
 
 ### Step 3: Create Deploy User (Recommended)

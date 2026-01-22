@@ -35,9 +35,9 @@ The installer will:
 # Connect to your server
 ssh root@your-server-ip
 
-# Update packages and install prerequisites
+# Update packages and install prerequisites (including nginx for SSL)
 apt update && apt upgrade -y
-apt install -y curl git wget unzip
+apt install -y curl git wget unzip nginx certbot python3-certbot-nginx
 
 # Install Docker
 curl -fsSL https://get.docker.com | sh
