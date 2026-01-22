@@ -229,6 +229,7 @@ const Index = () => {
   const hasActiveFilters = !!filter;
 
   // Generate page numbers to display - always returns exactly 4 slots for consistent width
+  // Pattern: shows 1, 2, 3, ..., last at start, shifts toward middle as you navigate
   const getPageNumbers = () => {
     const pages: (number | "ellipsis" | null)[] = [];
     if (totalPages <= 4) {
@@ -236,16 +237,16 @@ const Index = () => {
       for (let i = 1; i <= totalPages; i++) pages.push(i);
       while (pages.length < 4) pages.push(null);
     } else {
-      // Always 4 slots: first, middle area, last
-      if (currentPage <= 2) {
-        // Near start: 1, 2, ..., last
-        pages.push(1, 2, "ellipsis", totalPages);
-      } else if (currentPage >= totalPages - 1) {
-        // Near end: 1, ..., last-1, last
-        pages.push(1, "ellipsis", totalPages - 1, totalPages);
+      // Always 4 slots with smart shifting
+      if (currentPage <= 3) {
+        // Near start: 1, 2, 3, ..., last
+        pages.push(1, 2, 3, "ellipsis", totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        // Near end: 1, ..., last-2, last-1, last
+        pages.push(1, "ellipsis", totalPages - 2, totalPages - 1, totalPages);
       } else {
-        // Middle: 1, ..., current, last
-        pages.push(1, "ellipsis", currentPage, totalPages);
+        // Middle: 1, ..., current, ..., last
+        pages.push(1, "ellipsis", currentPage, "ellipsis", totalPages);
       }
     }
     return pages;
