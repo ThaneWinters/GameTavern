@@ -108,9 +108,9 @@ if docker volume inspect gamehaven-db >/dev/null 2>&1; then
 fi
 
 echo ""
-echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║${NC}          ${BOLD}Game Haven - Self-Hosted Installation${NC}            ${CYAN}║${NC}"
-echo -e "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
+echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║${NC}           ${BOLD}Game Haven - Self-Hosted Installation${NC}             ${CYAN}║${NC}"
+echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
 # If we detect an existing install, default to reusing secrets.
