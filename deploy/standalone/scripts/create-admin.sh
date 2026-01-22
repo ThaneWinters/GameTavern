@@ -204,6 +204,26 @@ if [ -z "$ADMIN_API_KEY" ]; then
     exit 1
 fi
 
+# If kong.yml exists, ensure the API key we're about to use matches what Kong was configured with.
+# (Kong key-auth compares the literal apikey header value against the baked key in kong.yml.)
+if [ -f "$KONG_YML_PATH" ]; then
+    if ! grep -Fq "$ADMIN_API_KEY" "$KONG_YML_PATH"; then
+        echo -e "${RED}Error:${NC} Service key mismatch between .env and kong.yml. Kong will return Unauthorized."
+        echo ""
+        echo -e "Loaded from .env: ${YELLOW}SERVICE_ROLE_KEY${NC} (starts with: ${ADMIN_API_KEY:0:16}...)"
+        echo -e "But kong.yml does not contain that key."
+        echo ""
+        echo -e "Fix options:"
+        echo -e "  1) If you want to KEEP the current DB volume, re-run installer and choose reuse existing secrets:"
+        echo -e "     ${YELLOW}cd deploy/standalone && ./install.sh && docker compose up -d${NC}"
+        echo -e "  2) If you want a FULL fresh reset, remove the DB volume first (this deletes all data), then re-run install:"
+        echo -e "     ${YELLOW}docker compose down -v${NC}"
+        echo -e "     ${YELLOW}./install.sh && docker compose up -d${NC}"
+        echo ""
+        exit 1
+    fi
+fi
+
 # Sanity check (service keys are JWTs)
 if ! echo "$ADMIN_API_KEY" | grep -q '\.'; then
     echo -e "${YELLOW}Warning:${NC} Service key doesn't look like a JWT"
