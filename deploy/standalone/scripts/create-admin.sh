@@ -27,6 +27,26 @@ else
     exit 1
 fi
 
+# ==========================================
+# Sanity checks
+# ==========================================
+
+# Kong declarative config does NOT support env var substitution.
+# If kong.yml still contains ${...} placeholders, Kong will treat them literally,
+# and key-auth will reject valid API keys with a 401 {"message":"Unauthorized"}.
+KONG_YML_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/kong.yml"
+if [ -f "$KONG_YML_PATH" ] && grep -q '\${[A-Z0-9_]*}' "$KONG_YML_PATH"; then
+    echo -e "${RED}Error:${NC} Your kong.yml contains \${...} placeholders and was not generated with real keys."
+    echo -e "This will cause admin calls (and some API calls) to return: {\"message\":\"Unauthorized\"}."
+    echo ""
+    echo -e "Fix: re-run the installer to regenerate kong.yml from your .env (choose to reuse existing secrets):"
+    echo -e "  ${YELLOW}cd deploy/standalone${NC}"
+    echo -e "  ${YELLOW}./install.sh${NC}"
+    echo -e "  ${YELLOW}docker compose up -d${NC}"
+    echo ""
+    exit 1
+fi
+
 echo ""
 echo -e "${BLUE}━━━ Create Admin User ━━━${NC}"
 echo ""
