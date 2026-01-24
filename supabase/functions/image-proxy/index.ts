@@ -3,6 +3,42 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ============= Rate Limiting =============
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const RATE_LIMIT_MAX = 100; // Max 100 requests per minute per IP (more lenient for images)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function getClientIP(req: Request): string {
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    req.headers.get("cf-connecting-ip") ||
+    "unknown"
+  );
+}
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(ip);
+
+  // Cleanup old entries periodically
+  if (rateLimitMap.size > 1000) {
+    for (const [key, val] of rateLimitMap) {
+      if (val.resetAt < now) rateLimitMap.delete(key);
+    }
+  }
+
+  if (!record || record.resetAt < now) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+
+  if (record.count >= RATE_LIMIT_MAX) return false;
+
+  record.count++;
+  return true;
+}
+
 const ALLOWED_HOSTS = new Set(["cf.geekdo-images.com"]);
 
 function browserLikeHeaders() {
@@ -42,6 +78,15 @@ async function fetchImage(url: string): Promise<Response | null> {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Rate limiting
+  const clientIP = getClientIP(req);
+  if (!checkRateLimit(clientIP)) {
+    return new Response("Rate limit exceeded", {
+      status: 429,
+      headers: { ...corsHeaders, "Retry-After": "60" },
+    });
   }
 
   if (req.method !== "GET") {

@@ -3,6 +3,42 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ============= Rate Limiting =============
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const RATE_LIMIT_MAX = 10; // Max 10 requests per minute per IP
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function getClientIP(req: Request): string {
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    req.headers.get("cf-connecting-ip") ||
+    "unknown"
+  );
+}
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(ip);
+
+  // Cleanup old entries periodically
+  if (rateLimitMap.size > 1000) {
+    for (const [key, val] of rateLimitMap) {
+      if (val.resetAt < now) rateLimitMap.delete(key);
+    }
+  }
+
+  if (!record || record.resetAt < now) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+
+  if (record.count >= RATE_LIMIT_MAX) return false;
+
+  record.count++;
+  return true;
+}
+
 // Difficulty levels from the database enum
 const DIFFICULTY_LEVELS = [
   "1 - Light",
@@ -117,6 +153,19 @@ function mapPlayTime(minutes: number | null): string | null {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Rate limiting
+  const clientIP = getClientIP(req);
+  if (!checkRateLimit(clientIP)) {
+    console.log(`Rate limit exceeded for IP: ${clientIP.substring(0, 10)}...`);
+    return new Response(
+      JSON.stringify({ success: false, error: "Rate limit exceeded. Please wait a moment before trying again." } satisfies BggLookupResponse),
+      {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+      }
+    );
   }
 
   if (req.method !== "POST") {
