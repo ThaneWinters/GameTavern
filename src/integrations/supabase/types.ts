@@ -147,25 +147,31 @@ export type Database = {
       game_ratings: {
         Row: {
           created_at: string
+          device_fingerprint: string | null
           game_id: string
           guest_identifier: string
           id: string
+          ip_address: string | null
           rating: number
           updated_at: string
         }
         Insert: {
           created_at?: string
+          device_fingerprint?: string | null
           game_id: string
           guest_identifier: string
           id?: string
+          ip_address?: string | null
           rating: number
           updated_at?: string
         }
         Update: {
           created_at?: string
+          device_fingerprint?: string | null
           game_id?: string
           guest_identifier?: string
           id?: string
+          ip_address?: string | null
           rating?: number
           updated_at?: string
         }

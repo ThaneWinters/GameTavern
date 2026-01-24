@@ -2,13 +2,48 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-fingerprint",
 };
+
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW_MINUTES = 60;
+const MAX_RATINGS_PER_WINDOW = 10;
 
 interface RateGameRequest {
   gameId: string;
   rating: number;
   guestIdentifier: string;
+  deviceFingerprint?: string;
+}
+
+// Extract client IP from request headers
+function getClientIP(req: Request): string {
+  // Check common proxy headers
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) {
+    return forwarded.split(",")[0].trim();
+  }
+  
+  const realIP = req.headers.get("x-real-ip");
+  if (realIP) {
+    return realIP;
+  }
+  
+  const cfConnectingIP = req.headers.get("cf-connecting-ip");
+  if (cfConnectingIP) {
+    return cfConnectingIP;
+  }
+  
+  return "unknown";
+}
+
+// Hash IP address for privacy (one-way)
+async function hashValue(value: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(value);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
 Deno.serve(async (req) => {
@@ -22,9 +57,17 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+    
+    // Get client IP
+    const clientIP = getClientIP(req);
+    const hashedIP = await hashValue(clientIP);
 
     if (req.method === "POST") {
-      const { gameId, rating, guestIdentifier }: RateGameRequest = await req.json();
+      const body: RateGameRequest = await req.json();
+      const { gameId, rating, guestIdentifier, deviceFingerprint } = body;
+      
+      // Get device fingerprint from header or body
+      const fingerprint = req.headers.get("x-device-fingerprint") || deviceFingerprint || "";
 
       // Validate inputs
       if (!gameId || typeof gameId !== "string") {
@@ -46,6 +89,45 @@ Deno.serve(async (req) => {
           JSON.stringify({ error: "Invalid guest identifier" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
+      }
+
+      // Rate limiting check - count ratings from this IP in the last hour
+      const rateLimitWindow = new Date(Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60 * 1000).toISOString();
+      
+      const { count: recentRatingsCount, error: rateLimitError } = await supabase
+        .from("game_ratings")
+        .select("*", { count: "exact", head: true })
+        .eq("ip_address", hashedIP)
+        .gte("created_at", rateLimitWindow);
+
+      if (rateLimitError) {
+        console.error("Rate limit check error:", rateLimitError);
+      }
+
+      if (recentRatingsCount !== null && recentRatingsCount >= MAX_RATINGS_PER_WINDOW) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Check if this IP + fingerprint combo already rated this game
+      if (fingerprint) {
+        const { data: existingRating } = await supabase
+          .from("game_ratings")
+          .select("id, guest_identifier")
+          .eq("game_id", gameId)
+          .eq("ip_address", hashedIP)
+          .eq("device_fingerprint", fingerprint)
+          .maybeSingle();
+
+        // If found with different guest_identifier, they're trying to double-vote
+        if (existingRating && existingRating.guest_identifier !== guestIdentifier) {
+          return new Response(
+            JSON.stringify({ error: "You have already rated this game." }),
+            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       }
 
       // Verify the game exists
@@ -70,6 +152,8 @@ Deno.serve(async (req) => {
             game_id: gameId,
             rating: Math.round(rating),
             guest_identifier: guestIdentifier,
+            ip_address: hashedIP,
+            device_fingerprint: fingerprint || null,
             updated_at: new Date().toISOString(),
           },
           {

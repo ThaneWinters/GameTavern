@@ -27,6 +27,42 @@ function getGuestIdentifier(): string {
   return guestId;
 }
 
+// Generate device fingerprint for anti-manipulation
+function getDeviceFingerprint(): string {
+  const storageKey = "game_rating_device_fp";
+  let fingerprint = localStorage.getItem(storageKey);
+  
+  if (!fingerprint) {
+    // Create a fingerprint from browser characteristics
+    const components = [
+      navigator.userAgent,
+      navigator.language,
+      screen.width,
+      screen.height,
+      screen.colorDepth,
+      new Date().getTimezoneOffset(),
+      navigator.hardwareConcurrency || 0,
+      // @ts-ignore - deviceMemory may not exist
+      navigator.deviceMemory || 0,
+      navigator.maxTouchPoints || 0,
+    ];
+    
+    // Simple hash function
+    const str = components.join("|");
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    
+    fingerprint = `fp_${Math.abs(hash).toString(36)}_${Date.now().toString(36)}`;
+    localStorage.setItem(storageKey, fingerprint);
+  }
+  
+  return fingerprint;
+}
+
 // Hook to get rating summary for all games
 export function useGameRatingsSummary() {
   const { isDemoMode, demoRatings } = useDemoMode();
@@ -89,6 +125,7 @@ export function useRateGame() {
   const { toast } = useToast();
   const { isDemoMode, addDemoRating } = useDemoMode();
   const guestId = getGuestIdentifier();
+  const deviceFingerprint = getDeviceFingerprint();
 
   return useMutation({
     mutationFn: async ({ gameId, rating }: { gameId: string; rating: number }) => {
@@ -98,7 +135,7 @@ export function useRateGame() {
       }
 
       const { data, error } = await supabase.functions.invoke("rate-game", {
-        body: { gameId, rating, guestIdentifier: guestId },
+        body: { gameId, rating, guestIdentifier: guestId, deviceFingerprint },
       });
 
       if (error) throw error;
@@ -114,11 +151,20 @@ export function useRateGame() {
         description: "Your rating has been recorded.",
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Error rating game:", error);
+      
+      // Handle specific error messages
+      let description = "Failed to save your rating. Please try again.";
+      if (error.message?.includes("Rate limit")) {
+        description = "Too many ratings. Please try again later.";
+      } else if (error.message?.includes("already rated")) {
+        description = "You have already rated this game.";
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to save your rating. Please try again.",
+        description,
         variant: "destructive",
       });
     },
