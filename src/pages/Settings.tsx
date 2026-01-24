@@ -25,13 +25,15 @@ import {
   FileSpreadsheet,
   Download,
   Heart,
-  ToggleRight
+  ToggleRight,
+  Star
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/useAuth";
 import { useGames, useDeleteGame, useMechanics, usePublishers, useCreateMechanic, useCreatePublisher } from "@/hooks/useGames";
 import { useUnreadMessageCount } from "@/hooks/useMessages";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { useGameRatingsSummary } from "@/hooks/useGameRatings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -79,6 +81,7 @@ import { ThemeCustomizer } from "@/components/settings/ThemeCustomizer";
 import { BulkImportDialog } from "@/components/games/BulkImportDialog";
 import { WishlistAdmin } from "@/components/settings/WishlistAdmin";
 import { FeatureFlagsAdmin } from "@/components/settings/FeatureFlagsAdmin";
+import { RatingsAdmin } from "@/components/settings/RatingsAdmin";
 import { SALE_CONDITION_OPTIONS, type SaleCondition, type GameWithRelations } from "@/types/game";
 
 type UserWithRole = {
@@ -90,6 +93,12 @@ type UserWithRole = {
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
+interface RatingSummary {
+  game_id: string;
+  rating_count: number;
+  average_rating: number;
+}
+
 interface GameCollectionTableProps {
   games: GameWithRelations[];
   filterLetter: string | null;
@@ -99,6 +108,7 @@ interface GameCollectionTableProps {
   gamesPerPage: number;
   onEdit: (id: string) => void;
   onDelete: (id: string, title: string) => void;
+  ratingSummaries?: RatingSummary[];
 }
 
 function GameCollectionTable({
@@ -110,7 +120,29 @@ function GameCollectionTable({
   gamesPerPage,
   onEdit,
   onDelete,
+  ratingSummaries = [],
 }: GameCollectionTableProps) {
+  const getRating = (gameId: string) => {
+    const summary = ratingSummaries.find(s => s.game_id === gameId);
+    return summary ? { avg: summary.average_rating, count: summary.rating_count } : null;
+  };
+
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`h-3 w-3 ${
+              star <= rating
+                ? "text-yellow-500 fill-yellow-500"
+                : "text-muted-foreground/30"
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
   // Filter by letter
   const filteredGames = useMemo(() => {
     let result = [...games].sort((a, b) => a.title.localeCompare(b.title));
@@ -192,55 +224,71 @@ function GameCollectionTable({
               <TableHead>Type</TableHead>
               <TableHead>Difficulty</TableHead>
               <TableHead>Players</TableHead>
+              <TableHead>Rating</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedGames.map((game) => (
-              <TableRow key={game.id}>
-                <TableCell className="font-medium">{game.title}</TableCell>
-                <TableCell>{game.game_type}</TableCell>
-                <TableCell>{game.difficulty}</TableCell>
-                <TableCell>
-                  {game.min_players}-{game.max_players}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onEdit(game.id)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Game</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{game.title}"? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => onDelete(game.id, game.title)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+            {paginatedGames.map((game) => {
+              const rating = getRating(game.id);
+              return (
+                <TableRow key={game.id}>
+                  <TableCell className="font-medium">{game.title}</TableCell>
+                  <TableCell>{game.game_type}</TableCell>
+                  <TableCell>{game.difficulty}</TableCell>
+                  <TableCell>
+                    {game.min_players}-{game.max_players}
+                  </TableCell>
+                  <TableCell>
+                    {rating ? (
+                      <div className="flex items-center gap-1.5">
+                        {renderStars(Math.round(rating.avg))}
+                        <span className="text-xs text-muted-foreground">
+                          ({rating.count})
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onEdit(game.id)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Game</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{game.title}"? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => onDelete(game.id, game.title)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       )}
@@ -285,6 +333,7 @@ const Settings = () => {
   
   // Only fetch games when admin (lazy load for performance)
   const { data: games = [], isLoading: gamesLoading } = useGames(isAdmin);
+  const { data: ratingSummaries = [] } = useGameRatingsSummary();
   const { data: mechanics = [], isLoading: mechanicsLoading, refetch: refetchMechanics } = useMechanics();
   const { data: publishers = [], isLoading: publishersLoading, refetch: refetchPublishers } = usePublishers();
   const createMechanic = useCreateMechanic();
@@ -990,7 +1039,7 @@ const Settings = () => {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className={`grid w-full ${isAdmin ? "grid-cols-7" : "grid-cols-1"}`}>
+          <TabsList className={`grid w-full ${isAdmin ? "grid-cols-8" : "grid-cols-1"}`}>
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="h-4 w-4" />
               Profile
@@ -1012,6 +1061,10 @@ const Settings = () => {
                 <TabsTrigger value="wishlist" className="flex items-center gap-2">
                   <Heart className="h-4 w-4" />
                   Wishlist
+                </TabsTrigger>
+                <TabsTrigger value="ratings" className="flex items-center gap-2">
+                  <Star className="h-4 w-4" />
+                  Ratings
                 </TabsTrigger>
                 <TabsTrigger value="features" className="flex items-center gap-2">
                   <ToggleRight className="h-4 w-4" />
@@ -1509,6 +1562,7 @@ const Settings = () => {
                       gamesPerPage={GAMES_PER_PAGE}
                       onEdit={(id) => navigate(`/admin/edit/${id}`)}
                       onDelete={handleDelete}
+                      ratingSummaries={ratingSummaries}
                     />
                   )}
                 </CardContent>
@@ -2115,6 +2169,13 @@ const Settings = () => {
           {isAdmin && (
             <TabsContent value="wishlist" className="space-y-6">
               <WishlistAdmin />
+            </TabsContent>
+          )}
+
+          {/* Ratings Tab (Admin Only) */}
+          {isAdmin && (
+            <TabsContent value="ratings" className="space-y-6">
+              <RatingsAdmin />
             </TabsContent>
           )}
 
