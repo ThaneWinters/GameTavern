@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExpansionList } from "./ExpansionList";
 import { WishlistButton } from "./WishlistButton";
+import { StarRating } from "./StarRating";
 import { useDemoMode } from "@/contexts/DemoContext";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import type { GameWithRelations } from "@/types/game";
@@ -93,6 +94,9 @@ export function GameCard({ game, priority = false }: GameCardProps) {
                   {game.play_time.replace(' Minutes', 'm').replace(' Hours', 'h')}
                 </span>
               </div>
+
+              {/* Rating */}
+              <StarRating gameId={game.id} size="sm" showCount={true} interactive={false} />
 
               <hr className="border-border mb-3" />
 

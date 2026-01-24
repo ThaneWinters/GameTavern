@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from "react";
 import { GameWithRelations } from "@/types/game";
 
 // Session storage key prefix to isolate demo data per tab
@@ -14,6 +14,7 @@ export interface DemoFeatureFlags {
   forSale: boolean;
   messaging: boolean;
   comingSoon: boolean;
+  ratings: boolean;
 }
 
 const DEFAULT_DEMO_FEATURE_FLAGS: DemoFeatureFlags = {
@@ -22,6 +23,7 @@ const DEFAULT_DEMO_FEATURE_FLAGS: DemoFeatureFlags = {
   forSale: true,
   messaging: true,
   comingSoon: true,
+  ratings: true,
 };
 
 // Demo session data types
@@ -56,6 +58,11 @@ interface DemoMessage {
   createdAt: string;
 }
 
+interface DemoRating {
+  gameId: string;
+  rating: number;
+}
+
 interface DemoContextType {
   isDemoMode: boolean;
   sessionId: string | null;
@@ -64,6 +71,8 @@ interface DemoContextType {
   demoWishlist: DemoWishlistEntry[];
   demoPlaySessions: DemoPlaySession[];
   demoMessages: DemoMessage[];
+  demoRatings: { game_id: string; rating_count: number; average_rating: number }[];
+  demoUserRatings: { game_id: string; rating: number }[];
   addDemoGame: (game: Partial<GameWithRelations>) => void;
   updateDemoGame: (id: string, game: Partial<GameWithRelations>) => void;
   deleteDemoGame: (id: string) => void;
@@ -78,6 +87,8 @@ interface DemoContextType {
   addDemoMessage: (message: Omit<DemoMessage, "id" | "isRead" | "createdAt">) => void;
   markDemoMessageRead: (id: string) => void;
   deleteDemoMessage: (id: string) => void;
+  addDemoRating: (gameId: string, rating: number) => void;
+  removeDemoRating: (gameId: string) => void;
 }
 
 const DemoContext = createContext<DemoContextType | null>(null);
@@ -126,6 +137,7 @@ export function DemoProvider({ children, enabled }: { children: ReactNode; enabl
   const [demoWishlist, setDemoWishlist] = useState<DemoWishlistEntry[]>([]);
   const [demoPlaySessions, setDemoPlaySessions] = useState<DemoPlaySession[]>([]);
   const [demoMessages, setDemoMessages] = useState<DemoMessage[]>([]);
+  const [demoRatingsInternal, setDemoRatingsInternal] = useState<DemoRating[]>([]);
   const [guestIdentifier] = useState(() => `guest_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
 
   // Generate unique IDs for demo entities. Using Date.now() alone can collide during bulk operations.
@@ -305,6 +317,7 @@ export function DemoProvider({ children, enabled }: { children: ReactNode; enabl
     setDemoWishlist([]);
     setDemoPlaySessions([]);
     setDemoMessages([]);
+    setDemoRatingsInternal([]);
     setDemoFeatureFlagsState(DEFAULT_DEMO_FEATURE_FLAGS);
     // Clear sessionStorage
     sessionStorage.removeItem(GAMES_KEY);
@@ -312,6 +325,7 @@ export function DemoProvider({ children, enabled }: { children: ReactNode; enabl
     sessionStorage.removeItem(SESSION_KEY_PREFIX + "wishlist");
     sessionStorage.removeItem(SESSION_KEY_PREFIX + "play_sessions");
     sessionStorage.removeItem(SESSION_KEY_PREFIX + "messages");
+    sessionStorage.removeItem(SESSION_KEY_PREFIX + "ratings");
   }, []);
 
   const setDemoFeatureFlags = useCallback((flags: Partial<DemoFeatureFlags>) => {
@@ -389,6 +403,43 @@ export function DemoProvider({ children, enabled }: { children: ReactNode; enabl
     setDemoMessages((prev) => prev.filter((m) => m.id !== id));
   }, []);
 
+  // Rating functions
+  const addDemoRating = useCallback((gameId: string, rating: number) => {
+    setDemoRatingsInternal((prev) => {
+      const existing = prev.find((r) => r.gameId === gameId);
+      if (existing) {
+        return prev.map((r) => (r.gameId === gameId ? { ...r, rating } : r));
+      }
+      return [...prev, { gameId, rating }];
+    });
+  }, []);
+
+  const removeDemoRating = useCallback((gameId: string) => {
+    setDemoRatingsInternal((prev) => prev.filter((r) => r.gameId !== gameId));
+  }, []);
+
+  // Computed ratings summary for display
+  const demoRatings = useMemo(() => {
+    // Group ratings by gameId
+    const grouped = new Map<string, number[]>();
+    for (const r of demoRatingsInternal) {
+      const existing = grouped.get(r.gameId) || [];
+      existing.push(r.rating);
+      grouped.set(r.gameId, existing);
+    }
+    
+    return Array.from(grouped.entries()).map(([game_id, ratings]) => ({
+      game_id,
+      rating_count: ratings.length,
+      average_rating: ratings.reduce((a, b) => a + b, 0) / ratings.length,
+    }));
+  }, [demoRatingsInternal]);
+
+  // User's own ratings (in demo, just the internal array mapped to expected format)
+  const demoUserRatings = useMemo(() => {
+    return demoRatingsInternal.map((r) => ({ game_id: r.gameId, rating: r.rating }));
+  }, [demoRatingsInternal]);
+
   return (
     <DemoContext.Provider
       value={{
@@ -399,6 +450,8 @@ export function DemoProvider({ children, enabled }: { children: ReactNode; enabl
         demoWishlist,
         demoPlaySessions,
         demoMessages,
+        demoRatings,
+        demoUserRatings,
         addDemoGame,
         updateDemoGame,
         deleteDemoGame,
@@ -413,6 +466,8 @@ export function DemoProvider({ children, enabled }: { children: ReactNode; enabl
         addDemoMessage,
         markDemoMessageRead,
         deleteDemoMessage,
+        addDemoRating,
+        removeDemoRating,
       }}
     >
       {children}
@@ -431,6 +486,8 @@ export function useDemoMode() {
       demoWishlist: [],
       demoPlaySessions: [],
       demoMessages: [],
+      demoRatings: [] as { game_id: string; rating_count: number; average_rating: number }[],
+      demoUserRatings: [] as { game_id: string; rating: number }[],
       addDemoGame: () => {},
       updateDemoGame: () => {},
       deleteDemoGame: () => {},
@@ -445,6 +502,8 @@ export function useDemoMode() {
       addDemoMessage: () => {},
       markDemoMessageRead: () => {},
       deleteDemoMessage: () => {},
+      addDemoRating: () => {},
+      removeDemoRating: () => {},
     };
   }
   return context;

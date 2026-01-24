@@ -144,6 +144,48 @@ export type Database = {
           },
         ]
       }
+      game_ratings: {
+        Row: {
+          created_at: string
+          game_id: string
+          guest_identifier: string
+          id: string
+          rating: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          guest_identifier: string
+          id?: string
+          rating: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          guest_identifier?: string
+          id?: string
+          rating?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_ratings_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_ratings_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_session_players: {
         Row: {
           created_at: string
@@ -476,6 +518,29 @@ export type Database = {
       }
     }
     Views: {
+      game_ratings_summary: {
+        Row: {
+          average_rating: number | null
+          game_id: string | null
+          rating_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_ratings_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_ratings_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_wishlist_summary: {
         Row: {
           game_id: string | null

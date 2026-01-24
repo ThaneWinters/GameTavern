@@ -10,7 +10,8 @@ import {
   DollarSign, 
   MessageSquare, 
   Clock,
-  RotateCcw
+  RotateCcw,
+  Star
 } from "lucide-react";
 
 const FEATURE_FLAG_LABELS: Record<keyof DemoFeatureFlags, string> = {
@@ -19,6 +20,7 @@ const FEATURE_FLAG_LABELS: Record<keyof DemoFeatureFlags, string> = {
   forSale: "For Sale",
   messaging: "Messaging",
   comingSoon: "Coming Soon",
+  ratings: "Ratings",
 };
 
 const FEATURE_FLAG_DESCRIPTIONS: Record<keyof DemoFeatureFlags, string> = {
@@ -27,6 +29,7 @@ const FEATURE_FLAG_DESCRIPTIONS: Record<keyof DemoFeatureFlags, string> = {
   forSale: "Show games that are for sale with pricing",
   messaging: "Allow visitors to send messages about games",
   comingSoon: "Show upcoming games that aren't available yet",
+  ratings: "Allow visitors to rate games (5-star system)",
 };
 
 const FEATURE_FLAG_ICONS: Record<keyof DemoFeatureFlags, React.ComponentType<{ className?: string }>> = {
@@ -35,6 +38,7 @@ const FEATURE_FLAG_ICONS: Record<keyof DemoFeatureFlags, React.ComponentType<{ c
   forSale: DollarSign,
   messaging: MessageSquare,
   comingSoon: Clock,
+  ratings: Star,
 };
 
 export function DemoFeatureFlagsAdmin() {
@@ -51,6 +55,7 @@ export function DemoFeatureFlagsAdmin() {
       forSale: true,
       messaging: true,
       comingSoon: true,
+      ratings: true,
     });
   };
 

@@ -19,6 +19,7 @@ import { LogPlayDialog } from "@/components/games/LogPlayDialog";
 import { PlayHistory } from "@/components/games/PlayHistory";
 import { GameImage } from "@/components/games/GameImage";
 import { YouTubeVideoList } from "@/components/games/YouTubeEmbed";
+import { StarRating } from "@/components/games/StarRating";
 import {
   Table,
   TableBody,
@@ -34,7 +35,7 @@ const GameDetail = () => {
   const { data: realGame, isLoading: isRealLoading } = useGame(isDemoMode ? undefined : slug);
   const { data: realGames } = useGames(!isDemoMode);
   const { isAdmin } = useAuth();
-  const { playLogs, messaging, forSale } = useFeatureFlags();
+  const { playLogs, messaging, forSale, ratings } = useFeatureFlags();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [brokenImageUrls, setBrokenImageUrls] = useState<string[]>([]);
 
@@ -352,7 +353,7 @@ const GameDetail = () => {
           {/* Details Section */}
           <div>
             {/* Title with Actions */}
-            <div className="flex items-start justify-between gap-4 mb-4">
+            <div className="flex items-start justify-between gap-4 mb-2">
               <h1 className="font-display text-3xl lg:text-4xl font-bold text-foreground">
                 {game.title}
               </h1>
@@ -369,6 +370,13 @@ const GameDetail = () => {
                 )}
               </div>
             </div>
+
+            {/* Star Rating - interactive on detail page */}
+            {ratings && (
+              <div className="mb-4">
+                <StarRating gameId={game.id} size="md" showCount={true} interactive={true} />
+              </div>
+            )}
 
             {/* For Sale Banner */}
             {forSale && game.is_for_sale && (

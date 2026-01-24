@@ -22,6 +22,7 @@ interface RuntimeConfig {
     MESSAGING?: boolean;
     COMING_SOON?: boolean;
     DEMO_MODE?: boolean;
+    RATINGS?: boolean;
   };
 }
 
