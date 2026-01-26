@@ -1,10 +1,94 @@
 # Game Haven - Standalone Self-Hosted Deployment
 
-Complete self-hosted package including the Game Haven app and full Supabase stack.
+Complete self-hosted package with two deployment options:
 
-## Quick Start (One Command)
+| Version | Stack | Complexity | Best For |
+|---------|-------|------------|----------|
+| **v2 (Recommended)** | Express + Postgres | Simple (3 containers) | Most users, Cloudron, Softaculous |
+| **v1 (Legacy)** | Full Supabase | Complex (7+ containers) | Feature parity with cloud |
 
-On a fresh Ubuntu/Debian server:
+---
+
+## Quick Start - v2 (Recommended)
+
+The v2 stack uses a simplified Node.js/Express backend instead of Supabase microservices.
+
+```bash
+# One-liner install
+curl -fsSL https://get.docker.com | sh && \
+git clone https://github.com/ThaneWinters/GameTavern.git && \
+cd GameTavern/deploy/standalone && \
+chmod +x install.sh scripts/*.sh && \
+./install.sh --v2
+```
+
+Or manually:
+
+```bash
+cd deploy/standalone
+cp .env.example .env
+# Edit .env with your settings
+docker compose -f docker-compose-v2.yml up -d
+```
+
+### v2 Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Your Server                           │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐  │
+│  │  Frontend   │  │  Express    │  │   PostgreSQL    │  │
+│  │   (Nginx)   │──│    API      │──│   (Standard)    │  │
+│  │   :3000     │  │   :3001     │  │     :5432       │  │
+│  └─────────────┘  └─────────────┘  └─────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
+
+### v2 Features
+
+| Feature | v2 Support |
+|---------|------------|
+| Game Management | ✅ Full |
+| BGG Import | ✅ Full |
+| Play Logs | ✅ Full |
+| Wishlist | ✅ Full |
+| Messaging | ✅ Full |
+| Ratings | ✅ Full |
+| AI Descriptions | ✅ BYOK (OpenAI/Gemini) |
+| Admin Panel | ✅ Full |
+
+### v2 Environment Variables
+
+```bash
+# Required
+DATABASE_URL=postgresql://postgres:password@db:5432/gamehaven
+JWT_SECRET=your-secret-at-least-32-chars
+SITE_URL=https://yourdomain.com
+
+# Optional - AI (Bring Your Own Key)
+AI_PROVIDER=openai  # or 'gemini'
+AI_API_KEY=sk-...
+
+# Optional - Email
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=user
+SMTP_PASS=pass
+SMTP_FROM=noreply@example.com
+
+# Optional - Features (all true by default)
+FEATURE_PLAY_LOGS=true
+FEATURE_WISHLIST=true
+FEATURE_FOR_SALE=true
+FEATURE_MESSAGING=true
+FEATURE_RATINGS=true
+```
+
+---
+
+## Quick Start - v1 (Legacy Supabase Stack)
+
+The v1 stack includes the full Supabase platform (GoTrue, PostgREST, Kong, Realtime, etc.).
 
 ```bash
 curl -fsSL https://get.docker.com | sh && \
@@ -14,65 +98,20 @@ chmod +x install.sh scripts/*.sh && \
 ./install.sh
 ```
 
-The installer will:
-1. Prompt for site configuration and admin credentials
-2. Generate secure secrets
-3. Start all Docker services
-4. Configure database passwords
-5. Run database migrations
-6. Create your admin user
-7. **(Optional)** Setup Nginx reverse proxy with Let's Encrypt SSL
+### v1 Architecture
 
-**That's it!** Your Game Haven is ready at `http://your-server-ip:3000`
-
----
-
-## Step-by-Step Installation
-
-### 1. Prepare Your Server
-
-```bash
-# Connect to your server
-ssh root@your-server-ip
-
-# Update packages and install prerequisites (including nginx for SSL)
-apt update && apt upgrade -y
-apt install -y curl git wget unzip nginx certbot python3-certbot-nginx
-
-# Install Docker
-curl -fsSL https://get.docker.com | sh
-systemctl start docker && systemctl enable docker
-
-# (Optional) Create a non-root user
-adduser gamehaven
-usermod -aG docker gamehaven
-usermod -aG sudo gamehaven
-su - gamehaven
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Your Linux Server                        │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │ Game Haven  │  │    Kong     │  │      PostgreSQL     │  │
+│  │  Frontend   │──│  API Gateway│──│   + Auth + REST     │  │
+│  │   :3000     │  │    :8000    │  │   + Realtime        │  │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### 2. Download and Install
-
-```bash
-git clone https://github.com/ThaneWinters/GameTavern.git
-cd GameTavern/deploy/standalone
-chmod +x install.sh scripts/*.sh
-./install.sh
-```
-
-### 3. Access Your Site
-
-- **Application**: `http://your-server-ip:3000`
-- **Admin Studio**: `http://your-server-ip:3001` (or via `https://yourdomain.com/studio/` with Nginx)
-
-Log in with the admin email and password you provided during installation.
-
-### Default Theme
-
-Standalone deployments start with a **neutral white/grey theme** (not the warm parchment style from Lovable Cloud). Customize via the Settings > Site tab after logging in as admin.
-
----
-
-## What's Included
+### v1 Services
 
 | Service | Description | Default Port |
 |---------|-------------|--------------|
@@ -84,69 +123,67 @@ Standalone deployments start with a **neutral white/grey theme** (not the warm p
 | **Realtime** | WebSocket subscriptions | - |
 | **Studio** | Database admin UI (optional) | 3001 |
 
-## How the Database Gets Set Up
+---
 
-The standalone installer automatically handles all database setup:
+## Installation Details
 
-1. **Supabase Postgres Image** - Uses `supabase/postgres:15.6.1.143` which includes the internal schemas (`auth`, `storage`, etc.)
+### Prerequisites
 
-2. **Role Password Initialization** (`migrations/00-init-users.sql`) - Sets up passwords for internal Supabase roles during container first boot
+- Docker 20.10+
+- Docker Compose 2.0+
+- 2GB RAM minimum (v2) / 4GB RAM minimum (v1)
+- 10GB disk space (v2) / 20GB disk space (v1)
 
-3. **Application Schema** (`migrations/01-app-schema.sql`) - Creates all Game Haven tables:
-   - `publishers`, `mechanics` (lookup tables)
-   - `games`, `game_mechanics`, `game_admin_data` (game data)
-   - `game_sessions`, `game_session_players` (play logs)
-   - `game_wishlist`, `game_messages` (user interactions)
-   - `site_settings`, `user_roles` (configuration)
-   - All RLS policies and security functions
+### Step-by-Step Installation
 
-4. **Admin User Creation** - Creates your admin account via GoTrue API and assigns the `admin` role
+```bash
+# 1. Connect to your server
+ssh root@your-server-ip
 
-All of this happens automatically when you run `./install.sh`.
+# 2. Update packages and install prerequisites
+apt update && apt upgrade -y
+apt install -y curl git wget unzip nginx certbot python3-certbot-nginx
 
-## Features
+# 3. Install Docker
+curl -fsSL https://get.docker.com | sh
+systemctl start docker && systemctl enable docker
 
-Toggle features on/off via environment variables:
+# 4. (Optional) Create a non-root user
+adduser gamehaven
+usermod -aG docker gamehaven
+usermod -aG sudo gamehaven
+su - gamehaven
 
-| Feature | Variable | Default |
-|---------|----------|---------|
-| Play Logs | `FEATURE_PLAY_LOGS` | true |
-| Wishlist | `FEATURE_WISHLIST` | true |
-| For Sale | `FEATURE_FOR_SALE` | true |
-| Messaging | `FEATURE_MESSAGING` | true |
-| Coming Soon | `FEATURE_COMING_SOON` | true |
-| Demo Mode | `FEATURE_DEMO_MODE` | false |
+# 5. Clone and install
+git clone https://github.com/ThaneWinters/GameTavern.git
+cd GameTavern/deploy/standalone
+chmod +x install.sh scripts/*.sh
+./install.sh --v2  # or just ./install.sh for v1
+```
+
+### Access Your Site
+
+- **Application**: `http://your-server-ip:3000`
+- **API Health**: `http://your-server-ip:3001/health` (v2) or `http://your-server-ip:8000/health` (v1)
+
+---
 
 ## Administration
 
-### Create Additional Admin Users
+### Create Admin User (v2)
+
+```bash
+# Interactive
+./scripts/create-admin-v2.sh
+
+# Non-interactive
+ADMIN_EMAIL="admin@example.com" ADMIN_PASSWORD="secure123" ./scripts/create-admin-v2.sh
+```
+
+### Create Admin User (v1)
 
 ```bash
 ./scripts/create-admin.sh
-```
-
-Or non-interactively:
-
-```bash
-ADMIN_EMAIL="user@example.com" ADMIN_PASSWORD="securepass" ./scripts/create-admin.sh
-```
-
-### Access Supabase Studio
-
-Studio is enabled by default and accessible at:
-- **Direct**: `http://your-server-ip:3001`
-- **Via Nginx proxy**: `https://yourdomain.com/studio/` (after running `setup-nginx.sh`)
-
-If Studio isn't accessible, check that the containers are running:
-
-```bash
-docker compose ps | grep -E "(studio|meta)"
-```
-
-If not listed, restart with:
-
-```bash
-docker compose up -d
 ```
 
 ### Backup Database
@@ -163,232 +200,188 @@ Backups are saved to `./backups/` and compressed automatically.
 ./scripts/restore.sh ./backups/gamehaven_20240101_120000.sql.gz
 ```
 
+---
+
 ## Production Deployment
 
-### Automatic SSL Setup (Recommended)
-
-If you specified a domain during installation, you'll be prompted to set up Nginx with Let's Encrypt SSL automatically:
-
-```bash
-? Setup Nginx reverse proxy with SSL for yourdomain.com? [Y/n]: y
-```
-
-This will:
-1. Install Nginx
-2. Configure it as a reverse proxy to the app
-3. Obtain a Let's Encrypt SSL certificate
-4. Set up automatic certificate renewal
-
-### Manual Nginx Setup
-
-You can also run the nginx setup script separately:
+### SSL Setup with Nginx
 
 ```bash
 ./scripts/setup-nginx.sh
 ```
 
-### Custom Nginx Config
+This will:
+1. Configure Nginx as a reverse proxy
+2. Obtain a Let's Encrypt SSL certificate
+3. Set up automatic certificate renewal
 
+### Manual Nginx Configuration
+
+```nginx
 server {
     listen 443 ssl http2;
-    server_name api.yourdomain.com;
+    server_name yourdomain.com;
     
-    ssl_certificate /etc/letsencrypt/live/api.yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/api.yourdomain.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
     
+    # Frontend
     location / {
-        proxy_pass http://127.0.0.1:8000;
+        proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+    }
+    
+    # API (v2)
+    location /api/ {
+        proxy_pass http://127.0.0.1:3001/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 }
 ```
 
-## Commands
+---
+
+## Commands Reference
+
+### v2 Stack
 
 ```bash
-# Start all services
+# Start
+docker compose -f docker-compose-v2.yml up -d
+
+# Stop
+docker compose -f docker-compose-v2.yml down
+
+# View logs
+docker compose -f docker-compose-v2.yml logs -f
+
+# Restart API
+docker compose -f docker-compose-v2.yml restart api
+
+# Rebuild after code changes
+docker compose -f docker-compose-v2.yml build --no-cache
+docker compose -f docker-compose-v2.yml up -d
+```
+
+### v1 Stack
+
+```bash
+# Start
 docker compose up -d
 
-# Stop all services
+# Stop
 docker compose down
 
 # View logs
 docker compose logs -f
 
-# View specific service logs
+# View specific service
 docker compose logs -f gamehaven
-
-# Restart a service
-docker compose restart gamehaven
-
-# Update to latest version
-git pull
-docker compose build
-docker compose up -d
 ```
+
+---
+
+## Feature Flags
+
+Toggle features on/off via environment variables:
+
+| Feature | Variable | Default |
+|---------|----------|---------|
+| Play Logs | `FEATURE_PLAY_LOGS` | true |
+| Wishlist | `FEATURE_WISHLIST` | true |
+| For Sale | `FEATURE_FOR_SALE` | true |
+| Messaging | `FEATURE_MESSAGING` | true |
+| Ratings | `FEATURE_RATINGS` | true |
+| Demo Mode | `FEATURE_DEMO_MODE` | false |
+
+---
+
+## AI Features (BYOK)
+
+The v2 stack supports "Bring Your Own Key" AI integration for description condensing:
+
+```bash
+# .env
+AI_PROVIDER=openai   # or 'gemini'
+AI_API_KEY=sk-your-openai-key
+```
+
+Supported providers:
+- **OpenAI**: GPT-4, GPT-3.5-turbo
+- **Google Gemini**: gemini-pro
+
+---
 
 ## Troubleshooting
 
-### Services not starting / "password authentication failed"
-
-Run the admin creation script which auto-detects and fixes password sync issues:
+### v2: API not responding
 
 ```bash
-./scripts/create-admin.sh
+# Check container status
+docker compose -f docker-compose-v2.yml ps
+
+# Check API logs
+docker compose -f docker-compose-v2.yml logs api
+
+# Test health endpoint
+curl http://localhost:3001/health
 ```
 
-Or manually fix:
+### v2: Database connection issues
+
+```bash
+# Verify database is running
+docker compose -f docker-compose-v2.yml logs db
+
+# Test connection
+docker exec gamehaven-db-v2 psql -U postgres -d gamehaven -c "SELECT 1;"
+```
+
+### v1: Services not starting
 
 ```bash
 ./scripts/fix-db-passwords.sh
-```
-
-### Auth service not responding
-
-Check logs:
-
-```bash
-docker logs gamehaven-auth --tail=50
-docker logs gamehaven-kong --tail=50
-```
-
-### Database issues
-
-```bash
-# Verify database is ready
-docker exec gamehaven-db pg_isready
-
-# Test actual connection (more reliable than pg_isready)
-docker exec gamehaven-db psql -U supabase_admin -d postgres -c "SELECT 1;"
-
-# Check database logs
-docker compose logs db
-```
-
-### Database connection refused during install
-
-If the installer fails with "connection to server on socket... failed: Connection refused", the database may not be fully initialized. Wait and retry:
-
-```bash
-sleep 15 && ./install.sh
+docker compose restart
 ```
 
 ### SSL / Certbot Issues
 
-**Re-run SSL setup:**
-
 ```bash
+# Re-run SSL setup
 ./scripts/setup-nginx.sh
-```
 
-**Manually renew certificates:**
-
-```bash
-sudo certbot renew
-```
-
-**Force certificate renewal:**
-
-```bash
+# Force certificate renewal
 sudo certbot renew --force-renewal
-```
 
-**Test certificate renewal (dry run):**
-
-```bash
+# Test renewal
 sudo certbot renew --dry-run
 ```
 
-**Check certificate status:**
+### Complete Reset
 
 ```bash
-sudo certbot certificates
-```
+# v2
+docker compose -f docker-compose-v2.yml down -v
+./install.sh --v2
 
-**Obtain a new certificate manually:**
-
-```bash
-sudo certbot --nginx -d yourdomain.com
-```
-
-### Nginx Issues
-
-**Test configuration:**
-
-```bash
-sudo nginx -t
-```
-
-**Reload after config changes:**
-
-```bash
-sudo systemctl reload nginx
-```
-
-**View access/error logs:**
-
-```bash
-sudo tail -f /var/log/nginx/gamehaven.access.log
-sudo tail -f /var/log/nginx/gamehaven.error.log
-```
-
-**Remove and reconfigure Nginx:**
-
-```bash
-sudo rm -f /etc/nginx/sites-enabled/gamehaven /etc/nginx/sites-available/gamehaven
-sudo systemctl reload nginx
-./scripts/setup-nginx.sh
-```
-
-### Studio Access Issues
-
-If Studio is not accessible via HTTPS, access it through the Nginx proxy:
-
-```
-https://yourdomain.com/studio/
-```
-
-Or directly (HTTP only, not recommended for production):
-
-```
-http://your-server-ip:3001
-```
-
-### Update to Latest Version
-
-```bash
-cd ~/GameTavern
-git fetch origin && git reset --hard origin/main
-cd deploy/standalone
-chmod +x install.sh scripts/*.sh
-docker compose down
-docker compose build --no-cache
-docker compose up -d
-```
-
-### Complete Reset (Fresh Start)
-
-```bash
-# Stop and remove all containers and volumes (deletes all data!)
+# v1
 docker compose down -v
-
-# Re-run installer
 ./install.sh
 ```
 
 ### Full Uninstall
 
 ```bash
-# Stop containers and delete all data
-cd ~/GameTavern/deploy/standalone
-docker compose down -v
+# Stop and remove containers
+docker compose -f docker-compose-v2.yml down -v  # or docker compose down -v
 
-# Remove Docker image
-docker rmi standalone-gamehaven:latest 2>/dev/null
+# Remove images
+docker rmi standalone-gamehaven:latest standalone-api:latest 2>/dev/null
 
 # Remove project files
 cd ~ && rm -rf ~/GameTavern
@@ -397,36 +390,67 @@ cd ~ && rm -rf ~/GameTavern
 sudo rm -f /etc/nginx/sites-enabled/gamehaven /etc/nginx/sites-available/gamehaven
 sudo systemctl reload nginx
 
-# (Optional) Remove Docker build cache
+# Clear Docker cache
 docker builder prune -af
 ```
 
-### Check Service Health
+---
 
-```bash
-# All container statuses
-docker compose ps
+## Platform-Specific Guides
 
-# Health of each service
-docker inspect --format='{{.Name}}: {{.State.Health.Status}}' $(docker compose ps -q) 2>/dev/null
+### Cloudron
 
-# API health check
-curl -s http://localhost:8000/auth/v1/health | jq .
+See [deploy/cloudron/README.md](../cloudron/README.md) for Cloudron-specific installation.
 
-# App health check  
-curl -s http://localhost:3000/health
-```
+### Softaculous
 
-## Requirements
+The v2 stack is compatible with Softaculous container deployments. Contact us for the Softaculous package.
 
-- Docker 20.10+
-- Docker Compose 2.0+
-- 4GB RAM minimum (8GB recommended)
-- 20GB disk space
+### Windows (Docker Desktop)
+
+1. Install [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/)
+2. Clone the repository
+3. Run `docker compose -f docker-compose-v2.yml up -d`
+
+---
+
+## Migration: v1 to v2
+
+To migrate from v1 (Supabase) to v2 (Express):
+
+1. **Backup your database**:
+   ```bash
+   ./scripts/backup.sh
+   ```
+
+2. **Stop v1 stack**:
+   ```bash
+   docker compose down
+   ```
+
+3. **Start v2 stack**:
+   ```bash
+   docker compose -f docker-compose-v2.yml up -d
+   ```
+
+4. **Restore data** (schema is compatible):
+   ```bash
+   ./scripts/restore.sh ./backups/latest.sql.gz
+   ```
+
+5. **Create admin user** (auth system changed):
+   ```bash
+   ./scripts/create-admin-v2.sh
+   ```
+
+Note: User passwords from v1 are not compatible with v2. Users will need to reset their passwords.
+
+---
 
 ## Security Notes
 
-1. **Secure passwords** - The installer generates cryptographically secure passwords
-2. **Use HTTPS in production** - Configure SSL via reverse proxy
+1. **Change default secrets** - Never use example values in production
+2. **Use HTTPS** - Configure SSL via Nginx reverse proxy
 3. **Backup regularly** - Use the provided backup script
-4. **Keep credentials secure** - The `.credentials` file contains sensitive data (chmod 600)
+4. **Keep credentials secure** - Protect your `.env` file (chmod 600)
+5. **Update regularly** - Pull latest changes and rebuild
