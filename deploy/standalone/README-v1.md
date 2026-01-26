@@ -1,8 +1,101 @@
-# Game Haven v1 - Full Supabase Stack (Legacy)
+# Game Haven v1 - Full Supabase Stack
 
-The v1 stack includes the complete Supabase platform for full feature parity with Lovable Cloud.
+Complete self-hosting guide for the full Supabase platform with all features.
 
-> ⚠️ **Note:** v1 is more complex to deploy and maintain. Consider [v2](./README-v2.md) for simpler setups.
+> ⚠️ **Note:** v1 requires more resources (4GB+ RAM) and is more complex. Consider [v2](./README-v2.md) for simpler setups.
+
+---
+
+## Requirements
+
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| Ubuntu | 24.04 LTS | 24.04 LTS |
+| RAM | 4GB | 8GB |
+| Storage | 20GB | 40GB |
+| CPU | 2 cores | 4 cores |
+
+---
+
+## Quick Start (Fresh Ubuntu 24.04)
+
+Run this single command on a fresh Ubuntu server:
+
+```bash
+curl -fsSL https://get.docker.com | sh && \
+sudo usermod -aG docker $USER && \
+newgrp docker && \
+git clone https://github.com/ThaneWinters/GameTavern.git && \
+cd GameTavern/deploy/standalone && \
+chmod +x install.sh scripts/*.sh && \
+./install.sh
+```
+
+The installer will:
+1. Prompt for site name and admin credentials
+2. Generate secure secrets automatically
+3. Start all Docker services (7+ containers)
+4. Run database migrations
+5. Create your admin user
+6. Optionally configure SSL with Nginx
+
+---
+
+## Step-by-Step Installation
+
+### 1. Update System
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+### 2. Install Docker
+
+```bash
+# Install Docker
+curl -fsSL https://get.docker.com | sh
+
+# Add your user to docker group
+sudo usermod -aG docker $USER
+
+# Apply group changes (or logout/login)
+newgrp docker
+
+# Verify installation
+docker --version
+docker compose version
+```
+
+### 3. Clone Repository
+
+```bash
+git clone https://github.com/ThaneWinters/GameTavern.git
+cd GameTavern/deploy/standalone
+```
+
+### 4. Make Scripts Executable
+
+```bash
+chmod +x install.sh scripts/*.sh
+```
+
+### 5. Run Installer
+
+```bash
+./install.sh
+```
+
+You'll be prompted for:
+- **Site Name** - Your game collection name
+- **Admin Email** - Your login email
+- **Admin Password** - Secure password (min 6 chars)
+
+### 6. Access Your Site
+
+- **Frontend:** `http://your-server-ip:3000`
+- **Supabase Studio:** `http://your-server-ip:3001`
+
+---
 
 ## Architecture
 
@@ -17,32 +110,7 @@ The v1 stack includes the complete Supabase platform for full feature parity wit
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**7+ containers** including GoTrue, PostgREST, Kong, Realtime, Edge Functions, and Studio.
-
----
-
-## Quick Start
-
-```bash
-curl -fsSL https://get.docker.com | sh && \
-git clone https://github.com/ThaneWinters/GameTavern.git && \
-cd GameTavern/deploy/standalone && \
-chmod +x install.sh scripts/*.sh && \
-./install.sh
-```
-
-The installer will:
-1. Prompt for site configuration
-2. Generate secure secrets
-3. Start all Docker services
-4. Configure database passwords
-5. Run migrations
-6. Create your admin user
-7. (Optional) Setup Nginx with SSL
-
----
-
-## Services
+### Services (7+ containers)
 
 | Service | Description | Port |
 |---------|-------------|------|
@@ -56,39 +124,113 @@ The installer will:
 
 ---
 
-## Configuration
+## Production Setup with SSL
 
-### Core Settings
+### Automatic (Recommended)
 
 ```bash
-# .env
+./scripts/setup-nginx.sh
+```
+
+This will:
+1. Install Nginx and Certbot
+2. Prompt for your domain name
+3. Configure reverse proxy
+4. Obtain SSL certificate from Let's Encrypt
+5. Set up auto-renewal
+
+### Manual Nginx Configuration
+
+```bash
+sudo apt install nginx certbot python3-certbot-nginx -y
+sudo nano /etc/nginx/sites-available/gamehaven
+```
+
+```nginx
+server {
+    listen 80;
+    server_name yourdomain.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name yourdomain.com;
+    
+    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+    
+    # Frontend
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    # Supabase REST API
+    location /rest/ {
+        proxy_pass http://127.0.0.1:8000/rest/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+    
+    # Supabase Auth
+    location /auth/ {
+        proxy_pass http://127.0.0.1:8000/auth/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+    
+    # Supabase Studio (optional)
+    location /studio/ {
+        proxy_pass http://127.0.0.1:3001/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+```bash
+sudo ln -s /etc/nginx/sites-available/gamehaven /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo certbot --nginx -d yourdomain.com
+sudo systemctl reload nginx
+```
+
+---
+
+## Configuration
+
+### Environment Variables
+
+Edit `.env` to customize:
+
+```bash
+nano .env
+```
+
+```bash
+# Site Settings
 SITE_NAME=Game Haven
 SITE_DESCRIPTION=Browse and discover our collection of board games
 SITE_URL=http://localhost:3000
 API_EXTERNAL_URL=http://localhost:8000
-```
 
-### Ports
-
-```bash
+# Ports
 APP_PORT=3000
 STUDIO_PORT=3001
 POSTGRES_PORT=5432
 KONG_HTTP_PORT=8000
-```
 
-### Security (Auto-generated by installer)
-
-```bash
+# Security (auto-generated - don't change unless needed)
 POSTGRES_PASSWORD=...
 JWT_SECRET=...
 ANON_KEY=...
 SERVICE_ROLE_KEY=...
-```
 
-### Features
-
-```bash
+# Features
 FEATURE_PLAY_LOGS=true
 FEATURE_WISHLIST=true
 FEATURE_FOR_SALE=true
@@ -97,53 +239,31 @@ FEATURE_COMING_SOON=true
 FEATURE_DEMO_MODE=false
 ```
 
----
-
-## Commands
+After editing, restart:
 
 ```bash
-# Start
-docker compose up -d
-
-# Stop
-docker compose down
-
-# Logs
-docker compose logs -f
-
-# Specific service logs
-docker compose logs -f gamehaven
-
-# Restart a service
-docker compose restart gamehaven
-
-# Rebuild
-docker compose build --no-cache
-docker compose up -d
+docker compose restart
 ```
 
 ---
 
 ## Administration
 
-### Create Admin User
+### Create Additional Admin Users
 
 ```bash
 ./scripts/create-admin.sh
 ```
 
-### Access Supabase Studio
-
-- **Direct:** `http://your-server-ip:3001`
-- **Via Nginx:** `https://yourdomain.com/studio/`
-
-### Backup
+### Backup Database
 
 ```bash
 ./scripts/backup.sh
 ```
 
-### Restore
+Backups are saved to `./backups/` with timestamps.
+
+### Restore Database
 
 ```bash
 ./scripts/restore.sh ./backups/gamehaven_20240101_120000.sql.gz
@@ -151,45 +271,32 @@ docker compose up -d
 
 ---
 
-## Production Setup
-
-### SSL with Nginx
+## Docker Commands
 
 ```bash
-./scripts/setup-nginx.sh
-```
+# Start all services
+docker compose up -d
 
-### Manual Nginx Config
+# Stop all services
+docker compose down
 
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name yourdomain.com;
-    
-    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
-    
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-    
-    location /rest/ {
-        proxy_pass http://127.0.0.1:8000/rest/;
-        proxy_set_header Host $host;
-    }
-    
-    location /auth/ {
-        proxy_pass http://127.0.0.1:8000/auth/;
-        proxy_set_header Host $host;
-    }
-    
-    location /studio/ {
-        proxy_pass http://127.0.0.1:3001/;
-        proxy_set_header Host $host;
-    }
-}
+# View logs (all services)
+docker compose logs -f
+
+# View specific service logs
+docker compose logs -f gamehaven
+docker compose logs -f db
+docker compose logs -f auth
+
+# Restart a service
+docker compose restart gamehaven
+
+# Rebuild and restart
+docker compose build --no-cache
+docker compose up -d
+
+# Check service status
+docker compose ps
 ```
 
 ---
@@ -199,27 +306,39 @@ server {
 ### Services not starting
 
 ```bash
+# Check status
+docker compose ps
+
+# Fix database passwords
 ./scripts/fix-db-passwords.sh
+
+# Restart
 docker compose restart
 ```
 
-### Auth service errors
+### Auth service errors (401 Unauthorized)
 
 ```bash
+# Check auth logs
 docker logs gamehaven-auth --tail=50
+
+# Check Kong gateway logs
 docker logs gamehaven-kong --tail=50
+
+# Verify JWT configuration
+./scripts/fix-auth-permissions.sh
 ```
 
-### Database issues
+### Database connection issues
 
 ```bash
-# Check readiness
+# Check if database is ready
 docker exec gamehaven-db pg_isready
 
 # Test connection
 docker exec gamehaven-db psql -U supabase_admin -d postgres -c "SELECT 1;"
 
-# View logs
+# View database logs
 docker compose logs db
 ```
 
@@ -227,9 +346,20 @@ docker compose logs db
 
 ```bash
 ./scripts/fix-db-passwords.sh
+docker compose restart
 ```
 
-### Reset everything
+### Studio "Failed to retrieve users" error
+
+The installer automatically patches this, but if it occurs:
+
+```bash
+docker exec gamehaven-db psql -U supabase_admin -d postgres -c \
+  "ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE;"
+docker compose restart studio
+```
+
+### Reset everything (nuclear option)
 
 ```bash
 docker compose down -v
@@ -238,20 +368,35 @@ docker compose down -v
 
 ---
 
+## Updating
+
+```bash
+cd ~/GameTavern
+git fetch origin
+git reset --hard origin/main
+cd deploy/standalone
+chmod +x install.sh scripts/*.sh
+docker compose build --no-cache
+docker compose up -d
+```
+
+---
+
 ## Uninstall
 
 ```bash
-# Stop and remove
+# Stop and remove containers + volumes
 docker compose down -v
 
-# Remove image
+# Remove Docker image
 docker rmi standalone-gamehaven:latest
 
-# Remove files
+# Remove project files
 cd ~ && rm -rf ~/GameTavern
 
-# Remove Nginx config
+# Remove Nginx config (if configured)
 sudo rm -f /etc/nginx/sites-enabled/gamehaven
+sudo rm -f /etc/nginx/sites-available/gamehaven
 sudo systemctl reload nginx
 
 # Clear Docker cache
@@ -264,14 +409,16 @@ docker builder prune -af
 
 The v1 stack uses the full Supabase schema with RLS policies:
 
-- `games` - Game catalog
-- `game_mechanics` - Game-to-mechanic mappings  
-- `game_sessions` - Play history
-- `game_wishlist` - User wishlists
-- `game_messages` - Contact messages (encrypted)
-- `game_ratings` - User ratings
-- `site_settings` - Configuration
-- `user_roles` - Admin permissions
+| Table | Description |
+|-------|-------------|
+| `games` | Game catalog |
+| `game_mechanics` | Game-to-mechanic mappings |
+| `game_sessions` | Play history |
+| `game_wishlist` | User wishlists |
+| `game_messages` | Contact messages (encrypted) |
+| `game_ratings` | User ratings |
+| `site_settings` | Configuration |
+| `user_roles` | Admin permissions |
 
 All tables have Row Level Security enabled.
 
@@ -288,6 +435,6 @@ v1 includes Supabase Edge Functions:
 | `send-message` | Contact form |
 | `rate-game` | Submit rating |
 | `wishlist` | Wishlist management |
-| `condense-descriptions` | AI summarization |
+| `condense-descriptions` | AI summarization (BYOK) |
 
 Functions are automatically deployed and routed through Kong at `/functions/v1/`.
