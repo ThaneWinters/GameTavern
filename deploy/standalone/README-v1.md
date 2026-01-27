@@ -105,7 +105,9 @@ The installer will:
 ### 7. Access Your Site
 
 - **Frontend:** `http://your-server-ip:3000` (or `https://yourdomain.com` with SSL)
-- **Supabase Studio:** `http://your-server-ip:3001`
+- **Supabase Studio:** `http://your-server-ip:3001` (or `https://yourdomain.com/studio/` with SSL)
+
+> **Note:** When using SSL, Studio is accessed via `/studio/` (with trailing slash) on your main domain. The Nginx setup script configures this automatically.
 
 ---
 
@@ -185,6 +187,7 @@ FEATURE_PLAY_LOGS=true
 FEATURE_WISHLIST=true
 FEATURE_FOR_SALE=true
 FEATURE_MESSAGING=true
+FEATURE_RATINGS=true
 FEATURE_COMING_SOON=true
 FEATURE_DEMO_MODE=false
 
@@ -314,6 +317,43 @@ The installer automatically patches this, but if it occurs:
 docker exec gamehaven-db psql -U supabase_admin -d postgres -c \
   "ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE;"
 docker compose restart studio
+```
+
+### Studio 404 via /studio/ URL
+
+If you're getting a 404 when accessing `https://yourdomain.com/studio/`:
+
+**1. Verify Studio container is running:**
+```bash
+docker ps | grep studio
+docker logs gamehaven-studio --tail=20
+```
+
+**2. Check if the proxy include file exists:**
+```bash
+cat /etc/nginx/snippets/gamehaven-proxy-locations.conf
+```
+
+**3. Verify your SSL vhost includes the proxy locations:**
+```bash
+grep -r "gamehaven-proxy-locations.conf" /etc/nginx/
+```
+
+**4. If missing, manually add to your SSL server block:**
+```bash
+# Find your SSL config file (usually in sites-enabled or conf.d)
+sudo nano /etc/nginx/sites-enabled/gamehaven
+
+# Add this line inside the SSL server block (listen 443):
+include /etc/nginx/snippets/gamehaven-proxy-locations.conf;
+
+# Test and reload
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+**5. Or re-run the Nginx setup:**
+```bash
+./scripts/setup-nginx.sh
 ```
 
 ### SSL Certificate Issues
@@ -490,4 +530,51 @@ v1 includes Supabase Edge Functions:
 
 Functions are automatically deployed and routed through Kong at `/functions/v1/`.
 
-> If edge functions appear to be missing/404 in v1, verify the `functions` container is mounting the repo’s `supabase/functions` directory (not `deploy/standalone/functions`).
+> If edge functions appear to be missing/404 in v1, verify the `functions` container is mounting the repo's `supabase/functions` directory (not `deploy/standalone/functions`).
+
+---
+
+## Post-Install Verification
+
+After installation, verify everything is working:
+
+```bash
+# 1. Check all containers are running
+docker compose ps
+
+# 2. Test REST API via Kong
+ANON=$(grep '^ANON_KEY=' .env | cut -d= -f2-) && \
+curl -s -H "apikey: $ANON" http://localhost:8000/rest/v1/ | head -c 100
+
+# 3. Test Auth health
+curl -s http://localhost:8000/auth/v1/health
+
+# 4. Test Studio is accessible (direct)
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3001
+
+# 5. If using SSL, test via Nginx
+curl -s -o /dev/null -w "%{http_code}" https://yourdomain.com/studio/
+```
+
+**Expected results:**
+- All containers: `running` or `healthy`
+- REST API: Returns OpenAPI JSON
+- Auth health: Returns `{"status":"ok"}`
+- Studio direct: `200`
+- Studio via SSL: `200` (or `301` redirect to `/studio/`)
+
+---
+
+## Quick Reference
+
+| Task | Command |
+|------|---------|
+| Start services | `docker compose up -d` |
+| Stop services | `docker compose down` |
+| View all logs | `docker compose logs -f` |
+| View specific logs | `docker compose logs -f gamehaven` |
+| Restart service | `docker compose restart studio` |
+| Create admin | `./scripts/create-admin.sh` |
+| Backup database | `./scripts/backup.sh` |
+| Setup SSL | `./scripts/setup-nginx.sh` |
+| Full rebuild | `docker compose build --no-cache && docker compose up -d` |
