@@ -228,6 +228,101 @@ if [[ "$SETUP_SSL" =~ ^[Yy] ]]; then
         
         echo -e "${GREEN}✓${NC} SSL certificate obtained and configured"
         
+        # Patch SSL server block to include /api and /studio location blocks
+        echo -e "${CYAN}Patching SSL configuration with proxy locations...${NC}"
+        
+        # Create a temporary file with the location blocks to inject
+        INJECT_BLOCKS=$(cat << 'LOCATIONS'
+
+    # API Gateway (Kong) - added by setup-nginx.sh
+    location /api/ {
+        rewrite ^/api/(.*)$ /$1 break;
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Studio redirect - added by setup-nginx.sh
+    location = /studio {
+        return 301 $scheme://$host/studio/;
+    }
+
+    # Studio proxy - added by setup-nginx.sh
+    location /studio/ {
+        rewrite ^/studio/(.*)$ /$1 break;
+        proxy_pass http://127.0.0.1:STUDIO_PORT_PLACEHOLDER;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 86400;
+    }
+LOCATIONS
+)
+        # Replace placeholder with actual port
+        INJECT_BLOCKS="${INJECT_BLOCKS//STUDIO_PORT_PLACEHOLDER/${STUDIO_PORT:-3001}}"
+
+        # Find the SSL server block and inject the locations before the closing brace
+        # First, remove any stray "return 404" lines that Certbot might add
+        sudo sed -i '/return 404; # managed by Certbot/d' "$CONF_PATH"
+        
+        # Check if locations already exist (avoid duplicate injection)
+        if ! grep -q "# API Gateway (Kong) - added by setup-nginx.sh" "$CONF_PATH"; then
+            # Find the line with "listen 443 ssl" and inject after the location / block
+            # We'll use a Python script for reliable multi-line injection
+            sudo python3 << PYSCRIPT
+import re
+
+with open("$CONF_PATH", "r") as f:
+    content = f.read()
+
+# Check if this is the SSL block (has listen 443)
+if "listen 443 ssl" in content or "listen [::]:443 ssl" in content:
+    # Find the last closing brace of the server block and inject before it
+    # We need to find the location / { ... } block and add after it
+    
+    inject_text = '''$INJECT_BLOCKS'''
+    
+    # Find position after "location / {" block - look for the pattern and insert after
+    # Strategy: find "proxy_read_timeout 86400;" in the main location block and add after closing }
+    pattern = r'(location / \{[^}]+proxy_read_timeout 86400;\s*\})'
+    
+    if re.search(pattern, content):
+        content = re.sub(pattern, r'\1' + inject_text, content)
+    else:
+        # Fallback: insert before the final closing brace
+        # Find the last } in the file
+        last_brace = content.rfind('}')
+        if last_brace > 0:
+            content = content[:last_brace] + inject_text + "\n" + content[last_brace:]
+    
+    with open("$CONF_PATH", "w") as f:
+        f.write(content)
+    print("Injected proxy locations into SSL config")
+else:
+    print("No SSL block found, skipping injection")
+PYSCRIPT
+            echo -e "${GREEN}✓${NC} SSL configuration patched with /api and /studio proxies"
+        else
+            echo -e "${GREEN}✓${NC} Proxy locations already present in config"
+        fi
+        
+        # Test and reload nginx
+        if sudo nginx -t; then
+            sudo systemctl reload nginx
+            echo -e "${GREEN}✓${NC} Nginx reloaded with updated configuration"
+        else
+            echo -e "${RED}Warning: Nginx config test failed after patching. Please check manually.${NC}"
+        fi
+        
         # Setup auto-renewal
         echo -e "${CYAN}Setting up auto-renewal...${NC}"
         (sudo crontab -l 2>/dev/null; echo "0 12 * * * /usr/bin/certbot renew --quiet") | sudo crontab -
