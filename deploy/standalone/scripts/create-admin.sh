@@ -32,19 +32,15 @@ fi
 # ==========================================
 
 # Kong declarative config does NOT support env var substitution.
-# If kong.yml still contains ${...} placeholders, Kong will treat them literally,
-# and key-auth will reject valid API keys with a 401 {"message":"Unauthorized"}.
+# However, docker-compose.yml now uses kong-render-config.sh to generate
+# kong.generated.yml at runtime with real keys substituted.
+# We only warn here (not error) since the source kong.yml intentionally has placeholders.
 KONG_YML_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/kong.yml"
-if [ -f "$KONG_YML_PATH" ] && grep -q '\${[A-Z0-9_]*}' "$KONG_YML_PATH"; then
-    echo -e "${RED}Error:${NC} Your kong.yml contains \${...} placeholders and was not generated with real keys."
-    echo -e "This will cause admin calls (and some API calls) to return: {\"message\":\"Unauthorized\"}."
-    echo ""
-    echo -e "Fix: re-run the installer to regenerate kong.yml from your .env (choose to reuse existing secrets):"
-    echo -e "  ${YELLOW}cd deploy/standalone${NC}"
-    echo -e "  ${YELLOW}./install.sh${NC}"
-    echo -e "  ${YELLOW}docker compose up -d${NC}"
-    echo ""
-    exit 1
+# Check if the GENERATED config exists inside the running container (meaning rendering worked)
+KONG_RENDERED_CHECK=$(docker exec gamehaven-kong sh -c 'test -f /home/kong/kong.generated.yml && echo "yes" || echo "no"' 2>/dev/null || echo "unknown")
+if [ "$KONG_RENDERED_CHECK" = "no" ]; then
+    echo -e "${YELLOW}Warning:${NC} Kong rendered config not found. Key-auth may fail."
+    echo -e "Try restarting Kong: ${YELLOW}docker compose restart kong${NC}"
 fi
 
 echo ""
