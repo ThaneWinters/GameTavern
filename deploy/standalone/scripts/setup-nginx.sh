@@ -144,6 +144,11 @@ server {
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
 
+    # Studio: redirect /studio to /studio/ for consistency
+    location = /studio {
+        return 301 \$scheme://\$host/studio/;
+    }
+
     # Studio (optional): served at https://<domain>/studio/
     # This avoids needing to expose a separate port over HTTPS.
     location /studio/ {
