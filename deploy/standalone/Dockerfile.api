@@ -4,12 +4,14 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install dependencies (use npm install since package-lock.json may not exist)
-COPY server/package*.json ./
+# NOTE: docker-compose-v2.yml builds with context: ../../server, so paths here
+# are relative to the server/ directory.
+COPY package*.json ./
 RUN npm install
 
 # Copy source and build
-COPY server/tsconfig.json ./
-COPY server/src ./src
+COPY tsconfig.json ./
+COPY src ./src
 RUN npm run build
 
 # Production image
@@ -21,7 +23,7 @@ WORKDIR /app
 RUN apk add --no-cache wget
 
 # Copy built files and production deps
-COPY server/package*.json ./
+COPY package*.json ./
 RUN npm install --only=production
 
 COPY --from=builder /app/dist ./dist

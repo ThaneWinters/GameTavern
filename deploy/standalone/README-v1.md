@@ -303,6 +303,43 @@ docker compose down -v
 
 ---
 
+## Reinstall / Backout (keep DB vs wipe DB)
+
+When reinstalling, you have two safe options:
+
+### Option A — Reinstall but KEEP the existing database (recommended)
+
+1) **Stop containers (keep volumes):**
+```bash
+docker compose down
+```
+
+2) **Re-run installer and choose to reuse secrets** when prompted (this keeps the DB and prevents auth/key mismatches):
+```bash
+./install.sh
+```
+
+### Option B — Full backout: WIPE the database and start fresh
+
+1) **(Optional) Backup first:**
+```bash
+./scripts/backup.sh
+```
+
+2) **Stop containers AND delete volumes (this deletes the DB):**
+```bash
+docker compose down -v
+```
+
+3) **Re-run installer:**
+```bash
+./install.sh
+```
+
+> Tip: If you want to remove only the DB volume, you can find it with `docker volume ls | grep gamehaven` and remove it explicitly.
+
+---
+
 ## Updating
 
 ```bash
@@ -373,3 +410,5 @@ v1 includes Supabase Edge Functions:
 | `condense-descriptions` | AI summarization (BYOK) |
 
 Functions are automatically deployed and routed through Kong at `/functions/v1/`.
+
+> If edge functions appear to be missing/404 in v1, verify the `functions` container is mounting the repo’s `supabase/functions` directory (not `deploy/standalone/functions`).

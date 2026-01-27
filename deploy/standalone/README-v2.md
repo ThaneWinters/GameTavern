@@ -310,6 +310,58 @@ docker compose -f docker-compose-v2.yml down -v
 
 ---
 
+## Reinstall / Backout (keep DB vs wipe DB)
+
+### Option A — Reinstall but KEEP the existing database (recommended)
+
+1) **Stop containers (keep volumes):**
+```bash
+docker compose -f docker-compose-v2.yml down
+```
+
+2) **Re-run the installer** and choose to reuse secrets/DB when prompted:
+```bash
+./install.sh --v2
+```
+
+### Option B — Full backout: WIPE the database and start fresh
+
+1) **(Optional) Backup first:**
+```bash
+./scripts/backup.sh
+```
+
+2) **Stop containers AND delete volumes (this deletes the DB):**
+```bash
+docker compose -f docker-compose-v2.yml down -v
+```
+
+3) **Re-run installer:**
+```bash
+./install.sh --v2
+```
+
+> Tip: Docker Compose prefixes volume names by folder/project. To inspect the actual volume name, run `docker volume ls | grep db_data`.
+
+---
+
+## If you still see `npm ci` errors
+
+If the build output still shows `RUN npm ci`, you’re building an older checkout or a cached layer.
+
+```bash
+cd ~/GameTavern
+git fetch origin
+git reset --hard origin/main
+
+cd deploy/standalone
+docker builder prune -af
+docker compose -f docker-compose-v2.yml build --no-cache
+docker compose -f docker-compose-v2.yml up -d
+```
+
+---
+
 ## Updating
 
 ```bash

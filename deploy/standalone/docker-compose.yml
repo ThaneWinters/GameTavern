@@ -178,7 +178,9 @@ services:
       SMTP_FROM: ${SMTP_FROM:-}
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
     volumes:
-      - ./functions:/home/deno/functions:ro
+      # Edge Function source lives in repo root at supabase/functions.
+      # Mount it explicitly (deploy/standalone/functions does not exist).
+      - ../../supabase/functions:/home/deno/functions:ro
     command:
       - start
       - --main-service
