@@ -162,6 +162,13 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_read_timeout 86400;
+
+        # Rewrite Studio's internal redirects to stay under /studio/
+        proxy_redirect / /studio/;
+        proxy_redirect ~^(https?://[^/]+)/(.*)\$ \$1/studio/\$2;
+
+        # Cookie path rewrite for session persistence
+        proxy_cookie_path / /studio/;
     }
 }
 NGINXCONF
@@ -257,7 +264,7 @@ location = /studio {
     return 301 \$scheme://\$host/studio/;
 }
 
-# Studio proxy
+# Studio proxy - rewrite internal redirects to stay under /studio/
 location /studio/ {
     rewrite ^/studio/(.*)\$ /\$1 break;
     proxy_pass http://127.0.0.1:${STUDIO_PORT:-3001};
@@ -269,6 +276,13 @@ location /studio/ {
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto \$scheme;
     proxy_read_timeout 86400;
+
+    # Rewrite Studio's internal redirects to stay under /studio/
+    proxy_redirect / /studio/;
+    proxy_redirect ~^(https?://[^/]+)/(.*)$ \$1/studio/\$2;
+
+    # Cookie path rewrite for session persistence
+    proxy_cookie_path / /studio/;
 }
 SSLLOCATIONS
 
