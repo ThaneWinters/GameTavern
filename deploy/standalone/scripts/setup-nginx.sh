@@ -149,8 +149,7 @@ server {
         return 301 \$scheme://\$host/studio/;
     }
 
-    # Studio (optional): served at https://<domain>/studio/
-    # This avoids needing to expose a separate port over HTTPS.
+    # Studio proxy
     location /studio/ {
         rewrite ^/studio/(.*)\$ /\$1 break;
         proxy_pass http://127.0.0.1:${STUDIO_PORT:-3001};
@@ -162,13 +161,19 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_read_timeout 86400;
+    }
 
-        # Rewrite Studio's internal redirects to stay under /studio/
-        proxy_redirect / /studio/;
-        proxy_redirect ~^(https?://[^/]+)/(.*)\$ \$1/studio/\$2;
-
-        # Cookie path rewrite for session persistence
-        proxy_cookie_path / /studio/;
+    # Studio internal routes (/project/, etc.)
+    location /project/ {
+        proxy_pass http://127.0.0.1:${STUDIO_PORT:-3001};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 86400;
     }
 }
 NGINXCONF
@@ -264,7 +269,7 @@ location = /studio {
     return 301 \$scheme://\$host/studio/;
 }
 
-# Studio proxy - rewrite internal redirects to stay under /studio/
+# Studio proxy
 location /studio/ {
     rewrite ^/studio/(.*)\$ /\$1 break;
     proxy_pass http://127.0.0.1:${STUDIO_PORT:-3001};
@@ -276,13 +281,19 @@ location /studio/ {
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto \$scheme;
     proxy_read_timeout 86400;
+}
 
-    # Rewrite Studio's internal redirects to stay under /studio/
-    proxy_redirect / /studio/;
-    proxy_redirect ~^(https?://[^/]+)/(.*)$ \$1/studio/\$2;
-
-    # Cookie path rewrite for session persistence
-    proxy_cookie_path / /studio/;
+# Studio internal routes - these are where Studio redirects internally
+location /project/ {
+    proxy_pass http://127.0.0.1:${STUDIO_PORT:-3001};
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_read_timeout 86400;
 }
 SSLLOCATIONS
 
