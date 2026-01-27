@@ -19,8 +19,8 @@ services:
     ports:
       - "${APP_PORT:-3000}:80"
     environment:
-      # CRITICAL: Use external URL so browser can reach Kong from outside Docker
-      - SUPABASE_URL=${API_EXTERNAL_URL:-http://localhost:${KONG_HTTP_PORT:-8000}}
+      # CRITICAL: Use external URL so browser can reach gateway from outside Docker
+      - SUPABASE_URL=${API_EXTERNAL_URL:-http://localhost:${GATEWAY_PORT:-8000}}
       - SUPABASE_ANON_KEY=${ANON_KEY}
       - SITE_NAME=${SITE_NAME:-Game Haven}
       - SITE_DESCRIPTION=${SITE_DESCRIPTION:-Browse and discover our collection of board games}
@@ -33,7 +33,7 @@ services:
       - FEATURE_COMING_SOON=${FEATURE_COMING_SOON:-true}
       - FEATURE_DEMO_MODE=${FEATURE_DEMO_MODE:-false}
     depends_on:
-      kong:
+      gateway:
         condition: service_healthy
     networks:
       - gamehaven-network
@@ -105,8 +105,6 @@ services:
       GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
       GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
       GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
-    # Note: don't use /dev/tcp here (it's a bash feature and not available in this image).
-    # We rely on the DB healthcheck + depends_on to ensure Postgres is accepting connections.
     depends_on:
       db:
         condition: service_healthy
@@ -170,7 +168,7 @@ services:
         hard: 65536
     environment:
       JWT_SECRET: ${JWT_SECRET}
-      SUPABASE_URL: http://kong:8000
+      SUPABASE_URL: http://gateway:8000
       SUPABASE_ANON_KEY: ${ANON_KEY}
       SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
       SUPABASE_DB_URL: postgresql://supabase_admin:${POSTGRES_PASSWORD}@db:5432/postgres
@@ -192,15 +190,12 @@ services:
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
     volumes:
       # Edge Function source lives in repo root at supabase/functions.
-      # Mount it explicitly (deploy/standalone/functions does not exist).
       - ../../supabase/functions:/home/deno/functions:ro
       # Override main/index.ts with self-hosted router (has static imports that work locally)
       - ./main-router.ts:/home/deno/functions/main/index.ts:ro
     command:
       - start
       - --main-service
-      # Edge Runtime expects a filesystem path here.
-      # Use the main router entrypoint for the self-hosted stack.
       - /home/deno/functions/main
       - --port
       - "9000"
@@ -210,34 +205,21 @@ services:
     networks:
       - gamehaven-network
 
-  # Kong API Gateway
-  kong:
-    image: kong:3.7
-    container_name: gamehaven-kong
+  # ===========================================
+  # Nginx API Gateway (replaces Kong)
+  # ===========================================
+  gateway:
+    image: nginx:1.25-alpine
+    container_name: gamehaven-gateway
     restart: unless-stopped
     ports:
-      - "${KONG_HTTP_PORT:-8000}:8000"
-    environment:
-      KONG_DATABASE: "off"
-      # NOTE: We generate a rendered config at startup because Kong does NOT
-      # reliably expand ${VAR} inside declarative YAML across versions/builds.
-      # Without this, key-auth credentials end up as the literal string
-      # "${SUPABASE_ANON_KEY}" which causes 401 Unauthorized.
-      KONG_DECLARATIVE_CONFIG: /tmp/kong.generated.yml
-      KONG_DNS_ORDER: LAST,A,CNAME
-      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
-      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
-      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
-      SUPABASE_ANON_KEY: ${ANON_KEY}
-      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      - "${GATEWAY_PORT:-8000}:8000"
     volumes:
-      - ./kong.yml:/home/kong/kong.yml:ro
-      - ./scripts/kong-render-config.sh:/home/kong/kong-render-config.sh:ro
-    command: ["sh", "-lc", "sh /home/kong/kong-render-config.sh && exec /docker-entrypoint.sh kong docker-start"]
+      - ./gateway.conf:/etc/nginx/conf.d/default.conf:ro
     healthcheck:
-      test: ["CMD", "kong", "health"]
-      interval: 10s
-      timeout: 10s
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 5s
       retries: 10
     depends_on:
       auth:
@@ -264,9 +246,9 @@ services:
       DEFAULT_PROJECT_NAME: Game Haven
       # Self-hosted Studio config - disable platform/cloud features
       NEXT_PUBLIC_IS_PLATFORM: "false"
-      SUPABASE_URL: http://kong:8000
-      SUPABASE_PUBLIC_URL: ${API_EXTERNAL_URL:-http://localhost:${KONG_HTTP_PORT:-8000}}
-      NEXT_PUBLIC_SUPABASE_URL: ${API_EXTERNAL_URL:-http://localhost:${KONG_HTTP_PORT:-8000}}
+      SUPABASE_URL: http://gateway:8000
+      SUPABASE_PUBLIC_URL: ${API_EXTERNAL_URL:-http://localhost:${GATEWAY_PORT:-8000}}
+      NEXT_PUBLIC_SUPABASE_URL: ${API_EXTERNAL_URL:-http://localhost:${GATEWAY_PORT:-8000}}
       SUPABASE_ANON_KEY: ${ANON_KEY}
       SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
       AUTH_JWT_SECRET: ${JWT_SECRET}
@@ -276,7 +258,7 @@ services:
     depends_on:
       meta:
         condition: service_healthy
-      kong:
+      gateway:
         condition: service_healthy
     networks:
       - gamehaven-network

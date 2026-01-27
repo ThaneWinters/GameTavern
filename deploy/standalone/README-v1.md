@@ -117,8 +117,8 @@ The installer will:
 ┌─────────────────────────────────────────────────────────────┐
 │                     Your Linux Server                        │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │ Game Haven  │  │    Kong     │  │      PostgreSQL     │  │
-│  │  Frontend   │──│  API Gateway│──│   + Auth + REST     │  │
+│  │ Game Haven  │  │   Nginx     │  │      PostgreSQL     │  │
+│  │  Frontend   │──│   Gateway   │──│   + Auth + REST     │  │
 │  │   :3000     │  │    :8000    │  │   + Realtime        │  │
 │  └─────────────┘  └─────────────┘  └─────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
@@ -132,7 +132,7 @@ The installer will:
 | PostgreSQL | Database | 5432 |
 | GoTrue | Authentication | - |
 | PostgREST | REST API | - |
-| Kong | API Gateway | 8000 |
+| Nginx Gateway | API Gateway | 8000 |
 | Realtime | WebSockets | - |
 | Studio | Database UI | 3001 |
 
@@ -150,7 +150,7 @@ nano .env
 
 ### API_EXTERNAL_URL Configuration (Critical!)
 
-This setting controls how the frontend communicates with the Supabase API gateway (Kong). **Misconfiguring this is the #1 cause of "non-2xx" edge function errors.**
+This setting controls how the frontend communicates with the Supabase API gateway. **Misconfiguring this is the #1 cause of "non-2xx" edge function errors.**
 
 | Setup | API_EXTERNAL_URL Value |
 |-------|------------------------|
@@ -174,7 +174,7 @@ API_EXTERNAL_URL=http://localhost:8000
 APP_PORT=3000
 STUDIO_PORT=3001
 POSTGRES_PORT=5432
-KONG_HTTP_PORT=8000
+GATEWAY_PORT=8000
 
 # Security (auto-generated - don't change unless needed)
 POSTGRES_PASSWORD=...
