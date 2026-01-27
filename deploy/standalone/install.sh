@@ -467,7 +467,7 @@ cat > docker-compose.override.yml << EOF
 services:
   kong:
     environment:
-      KONG_DECLARATIVE_CONFIG: /home/kong/kong.generated.yml
+      KONG_DECLARATIVE_CONFIG: /tmp/kong.generated.yml
       SUPABASE_ANON_KEY: \${ANON_KEY}
       SUPABASE_SERVICE_KEY: \${SERVICE_ROLE_KEY}
     volumes:
