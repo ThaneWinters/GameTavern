@@ -58,8 +58,25 @@ export default async function handler(req: Request): Promise<Response> {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const body = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      console.error("Failed to parse request body:", parseError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     const { action, email, password, role, userId } = body;
+    
+    if (!action) {
+      return new Response(
+        JSON.stringify({ error: "Missing 'action' field in request body", receivedBody: body }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     switch (action) {
       case "create": {
