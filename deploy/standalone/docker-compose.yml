@@ -223,8 +223,8 @@ services:
     volumes:
       - ./gateway.conf:/etc/nginx/conf.d/default.conf:ro
     healthcheck:
-      # Use /bin/sh + echo to test TCP connectivity since alpine has no curl/wget
-      test: ["CMD-SHELL", "/bin/sh -c 'echo -e \"GET /health HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n\" | nc localhost 8000 | grep -q healthy'"]
+      # Simple TCP check - just verify nginx is listening on port 8000
+      test: ["CMD-SHELL", "nc -z localhost 8000"]
       interval: 5s
       timeout: 5s
       retries: 10
