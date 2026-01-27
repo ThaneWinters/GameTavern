@@ -4,11 +4,16 @@
 const FUNCTIONS: Record<string, string> = {
   "bgg-import": "./bgg-import",
   "bgg-lookup": "./bgg-lookup",
+  "bulk-import": "./bulk-import",
+  "condense-descriptions": "./condense-descriptions",
   "decrypt-messages": "./decrypt-messages",
   "game-import": "./game-import",
   "image-proxy": "./image-proxy",
+  "manage-users": "./manage-users",
+  "rate-game": "./rate-game",
   "send-email": "./send-email",
   "send-message": "./send-message",
+  "wishlist": "./wishlist",
 };
 
 Deno.serve(async (req: Request) => {
