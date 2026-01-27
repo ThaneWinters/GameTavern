@@ -626,6 +626,23 @@ services:
           key_names:
             - apikey
 
+  # Edge Functions
+  - name: functions-v1
+    url: http://functions:9000
+    routes:
+      - name: functions-v1
+        strip_path: true
+        paths:
+          - /functions/v1/
+          - /functions/v1
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: true
+          key_names:
+            - apikey
+
 plugins:
   - name: cors
     config:
