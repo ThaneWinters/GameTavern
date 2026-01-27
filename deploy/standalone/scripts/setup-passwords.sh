@@ -37,7 +37,8 @@ for i in {1..30}; do
 done
 
 # Set passwords for all Supabase internal roles
-docker exec -i gamehaven-db psql -U supabase_admin -d postgres << EOSQL
+# Use -h localhost to force TCP connection instead of Unix socket
+docker exec -i gamehaven-db psql -h localhost -U supabase_admin -d postgres << EOSQL
 -- Set passwords for internal roles
 ALTER ROLE supabase_auth_admin WITH PASSWORD '${POSTGRES_PASSWORD}';
 ALTER ROLE authenticator WITH PASSWORD '${POSTGRES_PASSWORD}';
