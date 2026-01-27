@@ -164,6 +164,10 @@ services:
     restart: unless-stopped
     ports:
       - "9000:9000"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
     environment:
       JWT_SECRET: ${JWT_SECRET}
       SUPABASE_URL: http://kong:8000
