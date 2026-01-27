@@ -38,16 +38,17 @@ export interface AIResponse {
 
 /**
  * Get AI provider configuration
- * Priority: PERPLEXITY_API_KEY > OPENAI_API_KEY > LOVABLE_API_KEY
+ * Priority: PERPLEXITY > OPENAI > ANTHROPIC > GOOGLE_AI > LOVABLE (cloud fallback)
  */
-function getAIConfig(): { endpoint: string; apiKey: string; model: string } | null {
-  // Check for Perplexity (preferred for standalone)
+function getAIConfig(): { endpoint: string; apiKey: string; model: string; provider: string } | null {
+  // Check for Perplexity (preferred for standalone - includes web search)
   const perplexityKey = Deno.env.get("PERPLEXITY_API_KEY");
   if (perplexityKey) {
     return {
       endpoint: "https://api.perplexity.ai/chat/completions",
       apiKey: perplexityKey,
-      model: "sonar", // Good balance of speed and quality
+      model: "sonar",
+      provider: "perplexity",
     };
   }
 
@@ -58,16 +59,40 @@ function getAIConfig(): { endpoint: string; apiKey: string; model: string } | nu
       endpoint: "https://api.openai.com/v1/chat/completions",
       apiKey: openaiKey,
       model: "gpt-4o-mini",
+      provider: "openai",
     };
   }
 
-  // Fall back to Lovable AI gateway (for cloud deployments)
+  // Check for Anthropic Claude
+  const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (anthropicKey) {
+    return {
+      endpoint: "https://api.anthropic.com/v1/messages",
+      apiKey: anthropicKey,
+      model: "claude-3-haiku-20240307",
+      provider: "anthropic",
+    };
+  }
+
+  // Check for Google AI (Gemini)
+  const googleKey = Deno.env.get("GOOGLE_AI_API_KEY");
+  if (googleKey) {
+    return {
+      endpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+      apiKey: googleKey,
+      model: "gemini-1.5-flash",
+      provider: "google",
+    };
+  }
+
+  // Fall back to Lovable AI gateway (for cloud deployments only)
   const lovableKey = Deno.env.get("LOVABLE_API_KEY");
   if (lovableKey) {
     return {
       endpoint: "https://ai.gateway.lovable.dev/v1/chat/completions",
       apiKey: lovableKey,
       model: "google/gemini-2.5-flash",
+      provider: "lovable",
     };
   }
 
@@ -87,12 +112,14 @@ export function isAIConfigured(): boolean {
 export function getAIProviderName(): string {
   if (Deno.env.get("PERPLEXITY_API_KEY")) return "Perplexity";
   if (Deno.env.get("OPENAI_API_KEY")) return "OpenAI";
+  if (Deno.env.get("ANTHROPIC_API_KEY")) return "Anthropic Claude";
+  if (Deno.env.get("GOOGLE_AI_API_KEY")) return "Google Gemini";
   if (Deno.env.get("LOVABLE_API_KEY")) return "Lovable AI";
   return "None";
 }
 
 /**
- * Make an AI completion request
+ * Make an AI completion request - handles different provider APIs
  */
 export async function aiComplete(options: AIRequestOptions): Promise<AIResponse> {
   const config = getAIConfig();
@@ -100,99 +127,25 @@ export async function aiComplete(options: AIRequestOptions): Promise<AIResponse>
   if (!config) {
     return {
       success: false,
-      error: "AI service not configured. Set PERPLEXITY_API_KEY, OPENAI_API_KEY, or LOVABLE_API_KEY.",
+      error: "AI service not configured. Set PERPLEXITY_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, or GOOGLE_AI_API_KEY.",
     };
   }
 
   console.log(`Using AI provider: ${getAIProviderName()}`);
 
   try {
-    const requestBody: Record<string, unknown> = {
-      model: options.model || config.model,
-      messages: options.messages,
-    };
-
-    if (options.max_tokens) {
-      requestBody.max_tokens = options.max_tokens;
+    // Handle Anthropic's different API format
+    if (config.provider === "anthropic") {
+      return await anthropicComplete(config, options);
     }
 
-    // Add tools if provided (Perplexity supports OpenAI-compatible tool calling)
-    if (options.tools) {
-      requestBody.tools = options.tools;
-    }
-    if (options.tool_choice) {
-      requestBody.tool_choice = options.tool_choice;
+    // Handle Google AI's different API format
+    if (config.provider === "google") {
+      return await googleComplete(config, options);
     }
 
-    const response = await fetch(config.endpoint, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${config.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`AI API error (${response.status}):`, errorText);
-
-      if (response.status === 429 || response.status === 402) {
-        return {
-          success: false,
-          error: "Rate limit exceeded. Please try again later.",
-          rateLimited: true,
-        };
-      }
-
-      return {
-        success: false,
-        error: `AI request failed: ${response.status}`,
-      };
-    }
-
-    const data = await response.json();
-
-    // Extract content or tool call
-    const choice = data.choices?.[0];
-    if (!choice) {
-      return {
-        success: false,
-        error: "No response from AI",
-      };
-    }
-
-    // Check for tool calls
-    const toolCall = choice.message?.tool_calls?.[0];
-    if (toolCall?.function?.arguments) {
-      try {
-        const args = JSON.parse(toolCall.function.arguments);
-        return {
-          success: true,
-          toolCallArguments: args,
-        };
-      } catch (e) {
-        console.error("Failed to parse tool call arguments:", e);
-        return {
-          success: false,
-          error: "Failed to parse AI response",
-        };
-      }
-    }
-
-    // Regular content response
-    const content = choice.message?.content;
-    if (content) {
-      return {
-        success: true,
-        content,
-      };
-    }
-
-    return {
-      success: false,
-      error: "Empty response from AI",
-    };
+    // OpenAI-compatible APIs (OpenAI, Perplexity, Lovable)
+    return await openaiCompatibleComplete(config, options);
   } catch (e) {
     console.error("AI request error:", e);
     return {
@@ -200,4 +153,204 @@ export async function aiComplete(options: AIRequestOptions): Promise<AIResponse>
       error: e instanceof Error ? e.message : "AI request failed",
     };
   }
+}
+
+/**
+ * OpenAI-compatible completion (OpenAI, Perplexity, Lovable gateway)
+ */
+async function openaiCompatibleComplete(
+  config: { endpoint: string; apiKey: string; model: string },
+  options: AIRequestOptions
+): Promise<AIResponse> {
+  const requestBody: Record<string, unknown> = {
+    model: options.model || config.model,
+    messages: options.messages,
+  };
+
+  if (options.max_tokens) {
+    requestBody.max_tokens = options.max_tokens;
+  }
+
+  if (options.tools) {
+    requestBody.tools = options.tools;
+  }
+  if (options.tool_choice) {
+    requestBody.tool_choice = options.tool_choice;
+  }
+
+  const response = await fetch(config.endpoint, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${config.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    return handleErrorResponse(response);
+  }
+
+  const data = await response.json();
+  return parseOpenAIResponse(data);
+}
+
+/**
+ * Anthropic Claude completion
+ */
+async function anthropicComplete(
+  config: { endpoint: string; apiKey: string; model: string },
+  options: AIRequestOptions
+): Promise<AIResponse> {
+  // Convert messages format - Anthropic uses different structure
+  const systemMessage = options.messages.find(m => m.role === "system");
+  const otherMessages = options.messages.filter(m => m.role !== "system");
+
+  const requestBody: Record<string, unknown> = {
+    model: options.model || config.model,
+    max_tokens: options.max_tokens || 4096,
+    messages: otherMessages.map(m => ({
+      role: m.role === "assistant" ? "assistant" : "user",
+      content: m.content,
+    })),
+  };
+
+  if (systemMessage) {
+    requestBody.system = systemMessage.content;
+  }
+
+  const response = await fetch(config.endpoint, {
+    method: "POST",
+    headers: {
+      "x-api-key": config.apiKey,
+      "Content-Type": "application/json",
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    return handleErrorResponse(response);
+  }
+
+  const data = await response.json();
+  
+  // Anthropic returns content as an array
+  const content = data.content?.[0]?.text;
+  if (content) {
+    return { success: true, content };
+  }
+
+  return { success: false, error: "Empty response from Anthropic" };
+}
+
+/**
+ * Google AI (Gemini) completion
+ */
+async function googleComplete(
+  config: { endpoint: string; apiKey: string; model: string },
+  options: AIRequestOptions
+): Promise<AIResponse> {
+  // Google uses a different endpoint format with API key in URL
+  const endpoint = `${config.endpoint}?key=${config.apiKey}`;
+
+  // Convert messages to Google's format
+  const contents = options.messages
+    .filter(m => m.role !== "system")
+    .map(m => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
+
+  const systemMessage = options.messages.find(m => m.role === "system");
+  
+  const requestBody: Record<string, unknown> = {
+    contents,
+    generationConfig: {
+      maxOutputTokens: options.max_tokens || 4096,
+    },
+  };
+
+  if (systemMessage) {
+    requestBody.systemInstruction = { parts: [{ text: systemMessage.content }] };
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    return handleErrorResponse(response);
+  }
+
+  const data = await response.json();
+  
+  // Google returns candidates array
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (content) {
+    return { success: true, content };
+  }
+
+  return { success: false, error: "Empty response from Google AI" };
+}
+
+/**
+ * Parse OpenAI-compatible response
+ */
+function parseOpenAIResponse(data: Record<string, unknown>): AIResponse {
+  const choices = data.choices as Array<Record<string, unknown>> | undefined;
+  const choice = choices?.[0];
+  if (!choice) {
+    return { success: false, error: "No response from AI" };
+  }
+
+  const message = choice.message as Record<string, unknown> | undefined;
+  
+  // Check for tool calls
+  const toolCalls = message?.tool_calls as Array<Record<string, unknown>> | undefined;
+  const toolCall = toolCalls?.[0];
+  if (toolCall) {
+    const func = toolCall.function as Record<string, unknown> | undefined;
+    if (func?.arguments) {
+      try {
+        const args = JSON.parse(func.arguments as string);
+        return { success: true, toolCallArguments: args };
+      } catch {
+        return { success: false, error: "Failed to parse tool call arguments" };
+      }
+    }
+  }
+
+  // Regular content
+  const content = message?.content as string | undefined;
+  if (content) {
+    return { success: true, content };
+  }
+
+  return { success: false, error: "Empty response from AI" };
+}
+
+/**
+ * Handle error responses consistently
+ */
+async function handleErrorResponse(response: Response): Promise<AIResponse> {
+  const errorText = await response.text();
+  console.error(`AI API error (${response.status}):`, errorText);
+
+  if (response.status === 429 || response.status === 402) {
+    return {
+      success: false,
+      error: "Rate limit exceeded. Please try again later.",
+      rateLimited: true,
+    };
+  }
+
+  return {
+    success: false,
+    error: `AI request failed: ${response.status}`,
+  };
 }

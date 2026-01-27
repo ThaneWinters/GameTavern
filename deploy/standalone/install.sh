@@ -244,22 +244,55 @@ echo ""
 echo -e "${BOLD}━━━ AI Configuration (Optional, BYOK) ━━━${NC}"
 echo ""
 echo -e "${CYAN}Configure AI for BGG data extraction and description condensing.${NC}"
-echo -e "${CYAN}Supports Perplexity or OpenAI. Leave blank to skip AI features.${NC}"
+echo -e "${CYAN}Bring Your Own Key - supports multiple providers.${NC}"
 echo ""
 
-prompt PERPLEXITY_API_KEY "Perplexity API key (pplx-...)" "" true
+# Initialize all AI keys as empty
+PERPLEXITY_API_KEY=""
+OPENAI_API_KEY=""
+ANTHROPIC_API_KEY=""
+GOOGLE_AI_API_KEY=""
 
-if [ -z "$PERPLEXITY_API_KEY" ]; then
-    prompt OPENAI_API_KEY "OpenAI API key (sk-...)" "" true
-else
-    OPENAI_API_KEY=""
-fi
+echo -e "${BOLD}Select AI Provider:${NC}"
+echo ""
+echo -e "  ${CYAN}1)${NC} Perplexity (recommended - pplx-...)"
+echo -e "  ${CYAN}2)${NC} OpenAI (sk-...)"
+echo -e "  ${CYAN}3)${NC} Anthropic Claude (sk-ant-...)"
+echo -e "  ${CYAN}4)${NC} Google Gemini (AIza...)"
+echo -e "  ${CYAN}5)${NC} Skip - no AI features"
+echo ""
 
-if [ -n "$PERPLEXITY_API_KEY" ] || [ -n "$OPENAI_API_KEY" ]; then
-    echo -e "${GREEN}✓${NC} AI features will be enabled"
-else
-    echo -e "${YELLOW}Skipping AI - BGG imports will have basic data only.${NC}"
-fi
+read -p "$(echo -e "${BLUE}?${NC} Choose provider ${YELLOW}[1-5]${NC}: ")" AI_CHOICE
+
+case "$AI_CHOICE" in
+    1)
+        prompt PERPLEXITY_API_KEY "Perplexity API key" "" true
+        if [ -n "$PERPLEXITY_API_KEY" ]; then
+            echo -e "${GREEN}✓${NC} Perplexity AI configured"
+        fi
+        ;;
+    2)
+        prompt OPENAI_API_KEY "OpenAI API key" "" true
+        if [ -n "$OPENAI_API_KEY" ]; then
+            echo -e "${GREEN}✓${NC} OpenAI configured"
+        fi
+        ;;
+    3)
+        prompt ANTHROPIC_API_KEY "Anthropic API key" "" true
+        if [ -n "$ANTHROPIC_API_KEY" ]; then
+            echo -e "${GREEN}✓${NC} Anthropic Claude configured"
+        fi
+        ;;
+    4)
+        prompt GOOGLE_AI_API_KEY "Google AI API key" "" true
+        if [ -n "$GOOGLE_AI_API_KEY" ]; then
+            echo -e "${GREEN}✓${NC} Google Gemini configured"
+        fi
+        ;;
+    *)
+        echo -e "${YELLOW}Skipping AI - BGG imports will have basic data only.${NC}"
+        ;;
+esac
 
 echo ""
 echo -e "${BOLD}━━━ Admin Studio ━━━${NC}"
@@ -399,6 +432,8 @@ ESC_SMTP_PASS=$(escape_env_value "$SMTP_PASS")
     echo "# ==================="
     echo "PERPLEXITY_API_KEY=\"${PERPLEXITY_API_KEY}\""
     echo "OPENAI_API_KEY=\"${OPENAI_API_KEY}\""
+    echo "ANTHROPIC_API_KEY=\"${ANTHROPIC_API_KEY}\""
+    echo "GOOGLE_AI_API_KEY=\"${GOOGLE_AI_API_KEY}\""
     echo ""
     echo "# ==================="
     echo "# Additional"
