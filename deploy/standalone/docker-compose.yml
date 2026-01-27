@@ -225,7 +225,7 @@ services:
     healthcheck:
       # nginx:alpine does not include curl/wget/nc by default.
       # Use nginx's own config test as a lightweight liveness signal.
-      test: ["CMD-SHELL", "nginx -t >/dev/null 2>&1 || exit 1"]
+      test: ["CMD", "nginx", "-t"]
       interval: 5s
       timeout: 5s
       retries: 10
