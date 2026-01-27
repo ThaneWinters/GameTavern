@@ -50,15 +50,17 @@ export default async function handler(req: Request): Promise<Response> {
   console.log(`[main-router] Pathname: ${url.pathname}`);
   console.log(`[main-router] Path parts: ${JSON.stringify(pathParts)}`);
   
-  // The edge-runtime/Kong stack may forward requests as either:
+  // Nginx gateway strips /functions/v1/ prefix, so we receive:
   //   /<function-name>
-  // or:
+  // But edge-runtime direct calls or Kong may still include the prefix:
   //   /functions/v1/<function-name>
-  // depending on proxy configuration.
-  const functionName =
-    pathParts[0] === "functions" && pathParts[1] === "v1"
-      ? pathParts[2]
-      : pathParts[0];
+  // Handle both cases.
+  let functionName: string | undefined;
+  if (pathParts[0] === "functions" && pathParts[1] === "v1") {
+    functionName = pathParts[2];
+  } else {
+    functionName = pathParts[0];
+  }
   console.log(`[main-router] Resolved function: ${functionName}`);
 
   if (!functionName) {
