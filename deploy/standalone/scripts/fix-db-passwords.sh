@@ -28,7 +28,8 @@ echo -e "${YELLOW}Resetting Supabase internal user passwords...${NC}"
 ESCAPED_PW=$(printf '%s' "$POSTGRES_PASSWORD" | sed "s/'/''/g")
 
 # Reset passwords and grant permissions for all internal users
-docker exec -i gamehaven-db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres << EOSQL
+# Use -h localhost to force TCP connection instead of Unix socket
+docker exec -i gamehaven-db psql -h localhost -v ON_ERROR_STOP=1 -U supabase_admin -d postgres << EOSQL
 -- Create roles if they don't exist
 DO \$\$
 BEGIN

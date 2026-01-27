@@ -617,10 +617,11 @@ for i in {1..90}; do
 done
 
 # pg_isready passes before the Unix socket is fully available.
-# Wait until we can actually run a query.
+# Wait until we can actually run a query using TCP (not Unix socket).
 echo -e "${CYAN}Waiting for database to accept connections...${NC}"
 for j in {1..30}; do
-    if docker exec gamehaven-db psql -U supabase_admin -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+    # Use -h localhost to force TCP connection instead of Unix socket
+    if docker exec gamehaven-db psql -h localhost -U supabase_admin -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
         echo -e "${GREEN}✓${NC} Database accepting connections"
         break
     fi
@@ -796,7 +797,8 @@ docker cp /tmp/init-roles.sql gamehaven-db:/tmp/init-roles.sql
 # an immediate exit on non-zero status before we can inspect `$?`.
 echo -e "${CYAN}Running role init SQL...${NC}"
 set +e
-SQL_OUTPUT=$(docker exec gamehaven-db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres -f /tmp/init-roles.sql 2>&1)
+# Use -h localhost to force TCP connection instead of Unix socket
+SQL_OUTPUT=$(docker exec gamehaven-db psql -h localhost -v ON_ERROR_STOP=1 -U supabase_admin -d postgres -f /tmp/init-roles.sql 2>&1)
 SQL_EXIT_CODE=$?
 set -e
 
@@ -866,7 +868,8 @@ echo -e "${CYAN}Verifying auth database tables...${NC}"
 # Auth health can be up before DB migrations are fully complete.
 # The admin user creation endpoint requires auth.users to exist.
 for i in {1..60}; do
-    if docker exec -i gamehaven-db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres -tAc "SELECT 1 FROM auth.users LIMIT 1;" >/dev/null 2>&1; then
+    # Use -h localhost to force TCP connection instead of Unix socket
+    if docker exec -i gamehaven-db psql -h localhost -v ON_ERROR_STOP=1 -U supabase_admin -d postgres -tAc "SELECT 1 FROM auth.users LIMIT 1;" >/dev/null 2>&1; then
         echo -e "${GREEN}✓${NC} Auth tables are ready"
         break
     fi
@@ -894,7 +897,7 @@ done
 echo ""
 echo -e "${CYAN}Checking auth schema compatibility...${NC}"
 
-NEED_IS_ANONYMOUS=$(docker exec -i gamehaven-db psql -U supabase_admin -d postgres -tAc "
+NEED_IS_ANONYMOUS=$(docker exec -i gamehaven-db psql -h localhost -U supabase_admin -d postgres -tAc "
   SELECT CASE WHEN EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = 'is_anonymous'
@@ -903,7 +906,7 @@ NEED_IS_ANONYMOUS=$(docker exec -i gamehaven-db psql -U supabase_admin -d postgr
 
 if [ "$NEED_IS_ANONYMOUS" = "yes" ]; then
     echo -e "  Adding missing ${YELLOW}is_anonymous${NC} column to auth.users..."
-    docker exec -i gamehaven-db psql -U supabase_admin -d postgres -c \
+    docker exec -i gamehaven-db psql -h localhost -U supabase_admin -d postgres -c \
       "ALTER TABLE auth.users ADD COLUMN is_anonymous boolean NOT NULL DEFAULT false;" 2>/dev/null || true
     echo -e "${GREEN}✓${NC} Added is_anonymous column"
 else
@@ -925,7 +928,7 @@ echo -e "${CYAN}Applying application schema...${NC}"
 
 # Run the application schema migration manually to ensure it's applied
 # (handles both fresh installs and existing volumes)
-docker exec -i gamehaven-db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres < ./migrations/01-app-schema.sql
+docker exec -i gamehaven-db psql -h localhost -v ON_ERROR_STOP=1 -U supabase_admin -d postgres < ./migrations/01-app-schema.sql
 
 echo -e "${GREEN}✓${NC} Application schema ready"
 

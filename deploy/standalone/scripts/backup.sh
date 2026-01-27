@@ -26,8 +26,8 @@ mkdir -p "$BACKUP_DIR"
 
 echo -e "${YELLOW}Creating backup...${NC}"
 
-# Dump database
-docker exec gamehaven-db pg_dump -U postgres -d postgres > "$BACKUP_FILE"
+# Dump database using TCP connection
+docker exec gamehaven-db pg_dump -h localhost -U postgres -d postgres > "$BACKUP_FILE"
 
 # Compress
 gzip "$BACKUP_FILE"

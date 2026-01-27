@@ -303,6 +303,28 @@ docker compose down -v
 
 ---
 
+## Data Persistence & Safety
+
+**Your data is stored in Docker volumes**, which persist across:
+- Container restarts (`docker compose restart`)
+- System reboots
+- `docker stop` / `docker start` commands
+- `docker compose down` (without `-v`)
+
+**Data is ONLY deleted when you explicitly use the `-v` flag:**
+```bash
+docker compose down -v   # ⚠️ THIS DELETES ALL DATA
+```
+
+| Command | Containers | Data |
+|---------|-----------|------|
+| `docker compose stop` | Stopped | ✅ Safe |
+| `docker compose down` | Removed | ✅ Safe |
+| `docker compose down -v` | Removed | ❌ **DELETED** |
+| System shutdown/reboot | Stopped | ✅ Safe |
+
+---
+
 ## Reinstall / Backout (keep DB vs wipe DB)
 
 When reinstalling, you have two safe options:
