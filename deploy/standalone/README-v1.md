@@ -301,6 +301,41 @@ docker exec gamehaven-db psql -U supabase_admin -d postgres -c \
 docker compose restart studio
 ```
 
+### SSL Certificate Issues
+
+If you entered the wrong domain or need to reissue your SSL certificate:
+
+```bash
+# Remove existing certificate for the wrong domain
+sudo certbot delete --cert-name wrong-domain.example.com
+
+# List all certificates to find the correct name
+sudo certbot certificates
+
+# Request a new certificate for the correct domain
+sudo certbot --nginx -d correct-domain.example.com --email you@example.com
+
+# Or re-run the Nginx setup script (recommended)
+./scripts/setup-nginx.sh
+```
+
+**Force certificate renewal:**
+```bash
+# Renew all certificates (dry run first)
+sudo certbot renew --dry-run
+
+# Force renewal even if not expiring
+sudo certbot renew --force-renewal
+
+# Renew specific domain
+sudo certbot certonly --nginx -d yourdomain.com --force-renewal
+```
+
+**Common SSL issues:**
+- **Wrong domain:** Delete the old cert with `certbot delete`, then re-run `./scripts/setup-nginx.sh`
+- **Certificate not renewing:** Check that port 80 is accessible and DNS points to your server
+- **Mixed content errors:** Ensure `SITE_URL` and `API_EXTERNAL_URL` in `.env` use `https://`
+
 ### Reset everything (nuclear option)
 
 ```bash
