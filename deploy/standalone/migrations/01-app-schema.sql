@@ -143,6 +143,18 @@ BEGIN
 END;
 $$;
 
+-- ==========================================
+-- USER_ROLES TABLE (created early for has_role function)
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS public.user_roles (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL,
+    role public.app_role NOT NULL,
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    UNIQUE(user_id, role)
+);
+
 -- Has role function (SECURITY DEFINER to avoid RLS recursion)
 CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
 RETURNS boolean
@@ -284,15 +296,7 @@ CREATE TABLE IF NOT EXISTS public.site_settings (
     updated_at timestamp with time zone NOT NULL DEFAULT now()
 );
 
--- User Roles
-CREATE TABLE IF NOT EXISTS public.user_roles (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id uuid NOT NULL,
-    role public.app_role NOT NULL,
-    created_at timestamp with time zone NOT NULL DEFAULT now(),
-    UNIQUE(user_id, role)
-);
-
+-- User Roles table is created earlier (before has_role function)
 -- ==========================================
 -- TRIGGERS
 -- ==========================================
