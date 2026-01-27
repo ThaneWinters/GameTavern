@@ -333,12 +333,33 @@ echo -e "${CYAN}Preparing secure credentials...${NC}"
 if [ "$REUSE_EXISTING_SECRETS" = true ] && [ -f .env ]; then
     # shellcheck disable=SC1091
     source .env
+    # Strip any surrounding quotes from keys (common .env issue)
+    JWT_SECRET=$(echo "$JWT_SECRET" | tr -d '"')
+    ANON_KEY=$(echo "$ANON_KEY" | tr -d '"')
+    SERVICE_ROLE_KEY=$(echo "$SERVICE_ROLE_KEY" | tr -d '"')
+    POSTGRES_PASSWORD=$(echo "$POSTGRES_PASSWORD" | tr -d '"')
+    SECRET_KEY_BASE=$(echo "$SECRET_KEY_BASE" | tr -d '"')
+    
     # These MUST exist if we're reusing. If any are missing, regenerate safely.
     if [ -z "${POSTGRES_PASSWORD:-}" ] || [ -z "${JWT_SECRET:-}" ] || [ -z "${ANON_KEY:-}" ] || [ -z "${SERVICE_ROLE_KEY:-}" ] || [ -z "${SECRET_KEY_BASE:-}" ]; then
         echo -e "${YELLOW}Existing .env is missing one or more required secrets; regenerating all secrets.${NC}"
         REUSE_EXISTING_SECRETS=false
     else
-        echo -e "${GREEN}✓${NC} Reusing existing secrets from .env"
+        # Validate that ANON_KEY and SERVICE_ROLE_KEY are signed with current JWT_SECRET
+        # by regenerating them and comparing. If they don't match, regenerate.
+        EXPECTED_ANON=$(generate_jwt "anon" "$JWT_SECRET")
+        # JWTs have timestamps, so compare only header+payload structure
+        ANON_PARTS=$(echo "$ANON_KEY" | cut -d. -f1-2)
+        EXPECTED_PARTS=$(echo "$EXPECTED_ANON" | cut -d. -f1-2)
+        
+        if [ "$ANON_PARTS" != "$EXPECTED_PARTS" ]; then
+            echo -e "${YELLOW}API keys don't match JWT_SECRET. Regenerating keys...${NC}"
+            ANON_KEY=$(generate_jwt "anon" "$JWT_SECRET")
+            SERVICE_ROLE_KEY=$(generate_jwt "service_role" "$JWT_SECRET")
+            echo -e "${GREEN}✓${NC} API keys regenerated from existing JWT_SECRET"
+        else
+            echo -e "${GREEN}✓${NC} Reusing existing secrets from .env"
+        fi
     fi
 fi
 
@@ -767,7 +788,7 @@ docker compose up -d
 echo ""
 echo -e "${CYAN}Waiting for auth service to be ready...${NC}"
 
-AUTH_HEALTH_URL="http://localhost:${KONG_PORT}/auth/v1/health"
+AUTH_HEALTH_URL="http://localhost:${GATEWAY_PORT}/auth/v1/health"
 
 for i in {1..60}; do
     if curl -fsS --max-time 2 "$AUTH_HEALTH_URL" >/dev/null 2>&1; then
@@ -875,7 +896,7 @@ echo -e "${CYAN}Creating admin account...${NC}"
 
 # Create user via GoTrue API (retry once after fixing auth permissions)
 create_admin_user() {
-  curl -s -X POST "http://localhost:${KONG_PORT}/auth/v1/admin/users" \
+  curl -s -X POST "http://localhost:${GATEWAY_PORT}/auth/v1/admin/users" \
       -H "Content-Type: application/json" \
       -H "apikey: ${SERVICE_ROLE_KEY}" \
       -H "Authorization: Bearer ${SERVICE_ROLE_KEY}" \
